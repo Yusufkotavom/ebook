@@ -2,8 +2,9 @@ import { createClient } from "@/lib/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Mail, MessageSquare, ArrowLeft } from "lucide-react"
+import { Mail, MessageSquare, ArrowLeft, Send, Clock, CheckCircle } from "lucide-react"
 import Link from "next/link"
+import { ManualNotificationSection } from "@/components/manual-notification-section"
 
 export default async function NotificationsPage() {
   const supabase = await createClient()
@@ -41,6 +42,12 @@ export default async function NotificationsPage() {
         <p className="text-gray-600">Track all sent notifications and communications</p>
       </div>
 
+      {/* Manual Notification Section */}
+      <div className="mb-8">
+        <ManualNotificationSection />
+      </div>
+
+      {/* Notification History */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Notifications</CardTitle>

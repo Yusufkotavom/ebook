@@ -41,7 +41,7 @@ Your order #${orderId.slice(0, 8)} has been processed successfully.
 Download your ebooks:
 ${downloadLinks}
 
-Total: $${Number.parseFloat(order.total_amount).toFixed(2)}
+Total: Rp ${Number.parseFloat(order.total_amount).toLocaleString('id-ID')}
 
 Thank you for your purchase!
 - Ebook Store Team`

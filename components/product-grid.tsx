@@ -2,8 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, Eye } from "lucide-react"
+import { ShoppingCart } from "lucide-react"
 import Image from "next/image"
 import { useCart } from "@/hooks/use-cart"
 
@@ -39,51 +38,54 @@ export function ProductGrid({ products }: ProductGridProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Featured Books</h2>
-        <p className="text-gray-600">{products.length} books available</p>
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-black mb-2">Books</h2>
+        <p className="text-gray-600 text-sm">{products.length} available</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4">
         {products.map((product) => (
-          <Card key={product.id} className="group hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="p-4">
-              <div className="aspect-[3/4] relative mb-4 overflow-hidden rounded-lg bg-gray-100">
-                <Image
-                  src={product.image_url || "/placeholder.svg?height=300&width=225&query=book cover"}
-                  alt={product.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-200"
-                />
-                <div className="absolute top-2 right-2">
-                  <Badge variant="secondary" className="bg-white/90">
-                    ${Number.parseFloat(product.price).toFixed(2)}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                  {product.title}
-                </h3>
-
-                <p className="text-sm text-gray-600">by {product.author}</p>
-
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>{product.publisher}</span>
-                  <span>{product.year}</span>
+          <Card key={product.id} className="border-0 shadow-none bg-white">
+            <CardContent className="p-0">
+              <div className="flex gap-4">
+                <div className="w-20 h-28 flex-shrink-0">
+                  <div className="w-full h-full bg-gray-100 rounded overflow-hidden">
+                    <Image
+                      src={product.image_url || "/placeholder.svg?height=112&width=80&query=book cover"}
+                      alt={product.title}
+                      width={80}
+                      height={112}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 </div>
 
-                {product.description && <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-black text-sm leading-tight mb-1 line-clamp-2">
+                    {product.title}
+                  </h3>
 
-                <div className="flex gap-2 pt-2">
-                  <Button size="sm" className="flex-1" onClick={() => handleAddToCart(product)}>
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <p className="text-gray-600 text-xs mb-2">by {product.author}</p>
+
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs text-gray-500">{product.publisher}</span>
+                    <span className="text-xs text-gray-500">{product.year}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-black text-lg">
+                      Rp {Number.parseFloat(product.price).toLocaleString('id-ID')}
+                    </span>
+                    
+                    <Button 
+                      size="sm" 
+                      className="bg-black text-white hover:bg-gray-800 h-8 px-3"
+                      onClick={() => handleAddToCart(product)}
+                    >
+                      <ShoppingCart className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -93,7 +95,7 @@ export function ProductGrid({ products }: ProductGridProps) {
 
       {products.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No books found matching your criteria.</p>
+          <p className="text-gray-500">No books available.</p>
         </div>
       )}
     </div>
