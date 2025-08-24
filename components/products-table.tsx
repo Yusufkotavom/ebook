@@ -9,6 +9,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { createClient } from "@/lib/client"
 import { useRouter } from "next/navigation"
+import { useCurrency } from "@/contexts/currency-context"
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
+  const { formatPrice } = useCurrency()
 
   const handleDeleteProduct = async (productId: string) => {
     setIsDeleting(true)
@@ -96,7 +98,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
             <TableCell>{product.author}</TableCell>
             <TableCell>{product.publisher}</TableCell>
             <TableCell>{product.year}</TableCell>
-            <TableCell>${Number.parseFloat(product.price).toFixed(2)}</TableCell>
+            <TableCell>{formatPrice(product.price)}</TableCell>
             <TableCell>
               <Badge variant={product.is_active ? "default" : "secondary"}>
                 {product.is_active ? "Active" : "Inactive"}

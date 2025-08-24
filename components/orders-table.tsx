@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, Send } from "lucide-react"
 import { useState } from "react"
+import { useCurrency } from "@/contexts/currency-context"
 import { NotificationDialog } from "./notification-dialog"
 import { OrderDetailDialog } from "./order-detail-dialog"
 
@@ -32,6 +33,7 @@ export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
   const [orders, setOrders] = useState(initialOrders)
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const { formatPrice } = useCurrency()
   const [notificationOrder, setNotificationOrder] = useState<Order | null>(null)
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -108,7 +110,7 @@ export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
                   ))}
                 </div>
               </TableCell>
-              <TableCell>${Number.parseFloat(order.total_amount).toFixed(2)}</TableCell>
+              <TableCell>{formatPrice(order.total_amount)}</TableCell>
               <TableCell>
                 <Select
                   value={order.status}

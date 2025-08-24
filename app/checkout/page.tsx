@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useCart } from "@/hooks/use-cart"
+import { useCurrency } from "@/contexts/currency-context"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -15,6 +16,7 @@ import type { User } from "@supabase/supabase-js"
 
 export default function CheckoutPage() {
   const { state, clearCart } = useCart()
+  const { formatPrice } = useCurrency()
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -194,7 +196,7 @@ export default function CheckoutPage() {
                       <p className="text-sm">Qty: {item.quantity}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-medium">{formatPrice(item.price * item.quantity)}</p>
                     </div>
                   </div>
                 ))}
@@ -202,7 +204,7 @@ export default function CheckoutPage() {
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total:</span>
-                    <span>${state.total.toFixed(2)}</span>
+                    <span>{formatPrice(state.total)}</span>
                   </div>
                 </div>
               </div>

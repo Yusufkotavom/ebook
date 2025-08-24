@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
 import Image from "next/image"
 import { useCart } from "@/hooks/use-cart"
+import { useCurrency } from "@/contexts/currency-context"
 
 interface Product {
   id: string
@@ -25,6 +26,7 @@ interface ProductGridProps {
 
 export function ProductGrid({ products }: ProductGridProps) {
   const { addToCart } = useCart()
+  const { formatPrice } = useCurrency()
 
   const handleAddToCart = (product: Product) => {
     addToCart({
@@ -74,7 +76,7 @@ export function ProductGrid({ products }: ProductGridProps) {
 
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-black text-lg">
-                      Rp {Number.parseFloat(product.price).toLocaleString('id-ID')}
+                      {formatPrice(product.price)}
                     </span>
                     
                     <Button 

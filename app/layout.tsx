@@ -6,6 +6,7 @@ import "./globals.css"
 import { CartProvider } from "@/hooks/use-cart"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { CurrencyProvider } from "@/contexts/currency-context"
 
 export const metadata: Metadata = {
   title: "EbookStore - Digital Books & Educational Resources",
@@ -30,13 +31,15 @@ html {
         `}</style>
       </head>
       <body>
-        <CartProvider>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-        </CartProvider>
+        <CurrencyProvider>
+          <CartProvider>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
+          </CartProvider>
+        </CurrencyProvider>
       </body>
     </html>
   )
