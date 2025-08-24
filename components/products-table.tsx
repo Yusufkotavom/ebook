@@ -11,6 +11,7 @@ import { createClient } from "@/lib/client"
 import toast from "react-hot-toast"
 import { useRouter } from "next/navigation"
 import { useCurrency } from "@/contexts/currency-context"
+import { SectionLoading } from "@/components/page-loading"
 import {
   Dialog,
   DialogContent,

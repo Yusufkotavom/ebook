@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Eye, Clock, CheckCircle, XCircle } from "lucide-react"
 import Link from "next/link"
 import { useCurrency } from "@/contexts/currency-context"
+import { SectionLoading } from "@/components/page-loading"
 
 interface Order {
   id: string

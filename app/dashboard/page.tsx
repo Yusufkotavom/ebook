@@ -4,6 +4,8 @@ import { createClient } from "@/lib/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShoppingBag, Download, DollarSign, Clock } from "lucide-react"
 import { useCurrency } from "@/contexts/currency-context"
+import { SectionLoading } from "@/components/page-loading"
+import { usePageLoading } from "@/hooks/use-loading"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@supabase/supabase-js"
@@ -99,19 +101,7 @@ export default function DashboardPage() {
   }, [router])
 
   if (isLoading) {
-    return (
-      <div className="p-4 sm:p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-48 mb-8"></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 lg:mb-8">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-          <div className="h-96 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    )
+    return <SectionLoading title="Loading your dashboard..." size="lg" className="min-h-screen" />
   }
 
   if (!user) return null

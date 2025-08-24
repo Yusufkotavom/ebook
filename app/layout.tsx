@@ -10,6 +10,9 @@ import { CurrencyProvider } from "@/contexts/currency-context"
 import { AuthProvider } from "@/contexts/auth-context"
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import { Toaster } from "react-hot-toast"
+import { NavigationProgress } from "@/components/navigation-progress"
+import { GlobalLoading } from "@/components/global-loading"
+import { Suspense } from "react"
 
 export const metadata: Metadata = {
   title: "Ebook Store",
@@ -36,6 +39,12 @@ html {
         <AuthProvider>
           <CurrencyProvider>
             <CartProvider>
+              <Suspense>
+                <NavigationProgress />
+              </Suspense>
+              <Suspense>
+                <GlobalLoading />
+              </Suspense>
               <div className="min-h-screen flex flex-col">
                 <Header />
                 <main className="flex-1 pb-20 md:pb-0">{children}</main>

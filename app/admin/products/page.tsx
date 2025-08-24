@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/server"
+import { SectionLoading } from "@/components/page-loading"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, ArrowLeft } from "lucide-react"

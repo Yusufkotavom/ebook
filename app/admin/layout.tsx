@@ -1,4 +1,6 @@
 import { AdminNavigation } from "@/components/admin-navigation"
+import { AdminPageLoading } from "@/components/page-loading"
+import { Suspense } from "react"
 
 export default function AdminLayout({
   children,
@@ -6,10 +8,12 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 admin-progress">
       <AdminNavigation />
       <main className="lg:pl-64">
-        {children}
+        <Suspense fallback={<AdminPageLoading />}>
+          {children}
+        </Suspense>
       </main>
     </div>
   )

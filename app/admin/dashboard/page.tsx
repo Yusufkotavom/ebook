@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/server"
+import { SectionLoading } from "@/components/page-loading"
+import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
