@@ -211,22 +211,55 @@ export default function CheckoutPage() {
 
       console.log("[v0] Order created:", createdOrder.id)
 
-      // Create order items (only selected items)
-      const orderItems = selectedItems.map((item) => ({
-        order_id: createdOrder.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        price: item.price,
-      }))
+      // Create order items and handle subscriptions
+      setLoadingStep("Processing items...")
+      
+      // Separate subscription items from regular products
+      const subscriptionItems = selectedItems.filter(item => item.isSubscription)
+      const regularItems = selectedItems.filter(item => !item.isSubscription)
+      
+      // Handle regular product items
+      if (regularItems.length > 0) {
+        const orderItems = regularItems.map((item) => ({
+          order_id: createdOrder.id,
+          product_id: item.id,
+          quantity: item.quantity,
+          price: item.price,
+        }))
 
-      setLoadingStep("Adding items to order...")
-      console.log("[v0] Creating order items:", orderItems)
+        console.log("[v0] Creating order items:", orderItems)
+        const { error: itemsError } = await supabase.from("order_items").insert(orderItems)
 
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems)
+        if (itemsError) {
+          console.log("[v0] Order items error:", itemsError)
+          throw itemsError
+        }
+      }
 
-      if (itemsError) {
-        console.log("[v0] Order items error:", itemsError)
-        throw itemsError
+      // Handle subscription items
+      if (subscriptionItems.length > 0) {
+        setLoadingStep("Processing subscription...")
+        
+        const subscriptionOrderItems = subscriptionItems.map((item) => ({
+          order_id: createdOrder.id,
+          product_id: null, // No product ID for subscriptions
+          subscription_package_id: item.subscriptionPackageId,
+          item_type: 'subscription',
+          quantity: 1,
+          price: item.price,
+        }))
+
+        console.log("[v0] Creating subscription items:", subscriptionOrderItems)
+        const { error: subItemsError } = await supabase
+          .from("order_items")
+          .insert(subscriptionOrderItems)
+
+        if (subItemsError) {
+          console.log("[v0] Subscription items error:", subItemsError)
+          throw subItemsError
+        }
+
+        console.log("[v0] Subscription items created successfully")
       }
 
       setLoadingStep("Finalizing order...")

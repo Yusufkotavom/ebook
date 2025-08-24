@@ -63,6 +63,34 @@ export async function POST(request: NextRequest) {
     // Send actual email
     const emailResult = await emailService.sendEmail(emailData)
 
+    // Update order status to completed and activate subscriptions
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({ status: "completed" })
+      .eq("id", orderId)
+
+    if (updateError) {
+      console.error("Error updating order status:", updateError)
+    } else {
+      console.log(`✅ Order ${orderId} marked as completed`)
+      
+      // Check if order contains subscriptions and activate them
+      try {
+        const { error: activationError } = await supabase.rpc(
+          'activate_subscription_from_order', 
+          { order_uuid: orderId }
+        )
+        
+        if (activationError) {
+          console.error("Error activating subscriptions:", activationError)
+        } else {
+          console.log(`✅ Subscriptions activated for order ${orderId}`)
+        }
+      } catch (subError) {
+        console.error("Subscription activation failed:", subError)
+      }
+    }
+
     // Create message for logging
     const logMessage = `Payment Confirmed! Order #${orderId.slice(0, 8)} - Total: ${formattedTotal}`
 
