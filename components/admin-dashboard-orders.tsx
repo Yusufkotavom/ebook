@@ -12,6 +12,9 @@ interface Order {
   total_amount: string
   status: string
   created_at: string
+  user_id?: string
+  guest_email?: string
+  guest_name?: string
   profiles?: {
     email: string
   }
@@ -91,7 +94,7 @@ export function AdminDashboardOrders({ orders }: AdminDashboardOrdersProps) {
                   
                   <div className="space-y-1">
                     <p className="text-sm text-gray-600">
-                      {order.profiles?.email || 'Guest Order'}
+                      {order.profiles?.email || order.guest_email || order.guest_name || 'Guest Order'}
                     </p>
                     <p className="text-xs text-gray-500">
                       {new Date(order.created_at).toLocaleDateString('en-US', {

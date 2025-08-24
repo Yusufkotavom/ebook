@@ -8,27 +8,84 @@ import { OrdersTable } from "@/components/orders-table"
 export default async function AdminOrdersPage() {
   const supabase = await createClient()
 
-  const { data: orders, error } = await supabase
-    .from("orders")
-    .select(`
-      id,
-      total_amount,
-      status,
-      payment_method,
-      user_id,
-      guest_email,
-      guest_name,
-      guest_whatsapp,
-      created_at,
-      updated_at,
-      profiles(email, full_name, whatsapp_number),
-      order_items(
-        quantity,
-        price,
-        products(title, author)
-      )
-    `)
-    .order("created_at", { ascending: false })
+  // Try to fetch orders with profiles - if relationship fails, we'll handle it
+  let orders, error
+  
+  try {
+    const result = await supabase
+      .from("orders")
+      .select(`
+        id,
+        total_amount,
+        status,
+        payment_method,
+        user_id,
+        guest_email,
+        guest_name,
+        guest_whatsapp,
+        created_at,
+        updated_at,
+        profiles!user_id(email, full_name, whatsapp_number),
+        order_items(
+          quantity,
+          price,
+          products(title, author)
+        )
+      `)
+      .order("created_at", { ascending: false })
+    
+    orders = result.data
+    error = result.error
+  } catch (relationshipError) {
+    console.log("Relationship error, trying without profiles join:", relationshipError)
+    
+    // Fallback: Fetch orders without profiles relationship
+    const result = await supabase
+      .from("orders")
+      .select(`
+        id,
+        total_amount,
+        status,
+        payment_method,
+        user_id,
+        guest_email,
+        guest_name,
+        guest_whatsapp,
+        created_at,
+        updated_at,
+        order_items(
+          quantity,
+          price,
+          products(title, author)
+        )
+      `)
+      .order("created_at", { ascending: false })
+    
+    orders = result.data
+    error = result.error
+    
+    // If we have orders with user_ids, fetch profiles separately
+    if (orders && orders.length > 0) {
+      const userIds = orders
+        .filter(order => order.user_id)
+        .map(order => order.user_id)
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, email, full_name, whatsapp_number")
+          .in("id", userIds)
+        
+        // Map profiles to orders
+        if (profiles) {
+          orders = orders.map(order => ({
+            ...order,
+            profiles: order.user_id ? profiles.find(p => p.id === order.user_id) : null
+          }))
+        }
+      }
+    }
+  }
 
   if (error) {
     console.error("Error fetching orders:", error)

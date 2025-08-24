@@ -37,11 +37,35 @@ export default async function AdminDashboardPage() {
         total_amount,
         status,
         created_at,
-        profiles(email)
+        user_id,
+        guest_email,
+        guest_name
       `)
       .order("created_at", { ascending: false })
       .limit(5),
   ])
+
+  // Fetch profiles for recent orders if they have user_ids
+  let ordersWithProfiles = recentOrders
+  if (recentOrders && recentOrders.length > 0) {
+    const userIds = recentOrders
+      .filter(order => order.user_id)
+      .map(order => order.user_id)
+    
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, email")
+        .in("id", userIds)
+      
+      if (profiles) {
+        ordersWithProfiles = recentOrders.map(order => ({
+          ...order,
+          profiles: order.user_id ? profiles.find(p => p.id === order.user_id) : null
+        }))
+      }
+    }
+  }
 
   const totalRevenue = await supabase
     .from("orders")
@@ -171,7 +195,7 @@ export default async function AdminDashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Recent Orders - Takes 2 columns on XL screens */}
         <div className="xl:col-span-2">
-          <AdminDashboardOrders orders={recentOrders || []} />
+                      <AdminDashboardOrders orders={ordersWithProfiles || []} />
         </div>
 
         {/* Quick Actions - Takes 1 column on XL screens */}
