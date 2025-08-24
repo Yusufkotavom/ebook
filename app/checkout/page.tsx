@@ -35,6 +35,7 @@ export default function CheckoutPage() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [selectedItems, setSelectedItems] = useState<any[]>([])
   const [selectedTotal, setSelectedTotal] = useState(0)
+  const [loadingStep, setLoadingStep] = useState<string>("")
   const router = useRouter()
 
   // Handle selected items change from CheckoutCart
@@ -76,6 +77,7 @@ export default function CheckoutPage() {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    setLoadingStep("Validating order...")
 
     // Validate selected items
     if (selectedItems.length === 0) {
@@ -126,6 +128,7 @@ export default function CheckoutPage() {
       let userId = user?.id
 
       if (!userId) {
+        setLoadingStep("Creating your account...")
         console.log("[v0] Creating new user account during checkout")
 
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -185,6 +188,7 @@ export default function CheckoutPage() {
         }
       }
 
+      setLoadingStep("Creating your order...")
       console.log("[v0] Creating order")
 
       const orderData = {
@@ -215,6 +219,7 @@ export default function CheckoutPage() {
         price: item.price,
       }))
 
+      setLoadingStep("Adding items to order...")
       console.log("[v0] Creating order items:", orderItems)
 
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems)
@@ -224,6 +229,7 @@ export default function CheckoutPage() {
         throw itemsError
       }
 
+      setLoadingStep("Finalizing order...")
       console.log("[v0] Checkout completed successfully")
       
       // Remove only selected items from cart (keep unselected for future purchase)
@@ -231,6 +237,7 @@ export default function CheckoutPage() {
         removeFromCart(item.id)
       })
       
+      setLoadingStep("Redirecting to payment...")
       router.push(`/checkout/payment?order=${createdOrder.id}&total=${selectedTotal}`)
     } catch (error: unknown) {
       console.log("[v0] Checkout error:", error)
@@ -435,7 +442,7 @@ export default function CheckoutPage() {
                   {selectedItems.length === 0 
                     ? "Select items to checkout"
                     : isLoading 
-                      ? (user ? "Processing..." : "Creating Account & Order...") 
+                      ? loadingStep || (user ? "Processing..." : "Creating Account & Order...") 
                       : (user ? `Place Order (${formatPrice(selectedTotal)})` : `Create Account & Place Order (${formatPrice(selectedTotal)})`)
                   }
                 </Button>
