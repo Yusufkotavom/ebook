@@ -58,17 +58,41 @@ export function BooksGrid({ books, hasActiveSubscription, isLoggedIn }: BooksGri
     setDownloadingIds(prev => new Set(prev).add(book.id))
     
     try {
-      // Call the download API
-      const response = await fetch(`/api/books/download/${book.id}`, {
+      // Step 1: Generate download token
+      const tokenResponse = await fetch('/api/books/generate-download-token', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productId: book.id }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json()
+        throw new Error(errorData.error || 'Failed to generate download link')
+      }
+
+      const { downloadToken, expiresIn } = await tokenResponse.json()
+
+      // Show expiry warning
+      const expiryMinutes = Math.ceil(expiresIn / 60)
+      toast.success(`🔗 Download link generated! Valid for ${expiryMinutes} minutes`, { duration: 3000 })
+
+      // Step 2: Download with token
+      const downloadResponse = await fetch(`/api/books/download/${book.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ downloadToken }),
+      })
+
+      if (!downloadResponse.ok) {
+        const errorData = await downloadResponse.json()
         throw new Error(errorData.error || 'Download failed')
       }
 
-      const blob = await response.blob()
+      const blob = await downloadResponse.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

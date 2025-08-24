@@ -33,10 +33,10 @@ export function MobileBottomNav() {
       badge: null,
     },
     {
-      id: "products",
-      label: "Products",
+      id: "books",
+      label: "Books",
       icon: Grid3X3,
-      href: "/products",
+      href: "/books",
       badge: null,
     },
     {
@@ -73,10 +73,10 @@ export function MobileBottomNav() {
       badge: null,
     },
     {
-      id: "products",
-      label: "Products",
+      id: "books",
+      label: "Books",
       icon: Grid3X3,
-      href: "/products",
+      href: "/books",
       badge: null,
     },
     {

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/server"
 import { NextRequest, NextResponse } from "next/server"
+import { verifyDownloadToken } from "@/lib/download-tokens"
 
 export async function POST(
   request: NextRequest,
@@ -8,14 +9,36 @@ export async function POST(
   try {
     const supabase = await createClient()
     
-    // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Get download token from request body
+    const { downloadToken } = await request.json()
     
-    if (authError || !user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    if (!downloadToken) {
+      return NextResponse.json({ error: "Download token required" }, { status: 400 })
     }
 
-    // Check if user has active subscription
+    // Verify the download token
+    let tokenPayload
+    try {
+      tokenPayload = verifyDownloadToken(downloadToken)
+    } catch (error) {
+      return NextResponse.json({ 
+        error: error instanceof Error ? error.message : "Invalid download token" 
+      }, { status: 401 })
+    }
+
+    // Verify token matches the requested product
+    if (tokenPayload.productId !== params.id) {
+      return NextResponse.json({ error: "Token does not match requested product" }, { status: 403 })
+    }
+
+    // Get the current user and verify it matches token
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user || user.id !== tokenPayload.userId) {
+      return NextResponse.json({ error: "Authentication mismatch" }, { status: 401 })
+    }
+
+    // Double-check user still has active subscription (security measure)
     const { data: hasSubscription, error: subscriptionError } = await supabase.rpc(
       'has_active_subscription', 
       { user_uuid: user.id }
@@ -28,7 +51,7 @@ export async function POST(
 
     if (!hasSubscription) {
       return NextResponse.json({ 
-        error: "Active subscription required to download books" 
+        error: "Subscription no longer active" 
       }, { status: 403 })
     }
 
@@ -48,12 +71,14 @@ export async function POST(
       return NextResponse.json({ error: "Download not available for this book" }, { status: 400 })
     }
 
-    // Log the download for analytics (optional)
+    // Log the download for analytics
     try {
       await supabase.from("download_logs").insert([
         {
           user_id: user.id,
           product_id: book.id,
+          subscription_id: tokenPayload.subscriptionId,
+          download_token_used: downloadToken.substring(0, 20) + "...", // Log partial token for debugging
           downloaded_at: new Date().toISOString()
         }
       ])
