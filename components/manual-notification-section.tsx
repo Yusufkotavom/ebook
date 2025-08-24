@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Send, Mail, MessageSquare } from "lucide-react"
+import toast from "react-hot-toast"
 
 export function ManualNotificationSection() {
   const [formData, setFormData] = useState({
@@ -23,9 +24,26 @@ export function ManualNotificationSection() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate form
+    if (!formData.type || !formData.recipient || !formData.message) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+
+    if (!formData.subject) {
+      toast.error("Subject is required for manual notifications")
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     setSuccess(null)
+
+    // Show loading toast
+    const loadingToast = toast.loading(
+      `Sending ${formData.type === 'email' ? '📧 email' : '📱 WhatsApp'} notification...`
+    )
 
     const supabase = createClient()
 
@@ -42,6 +60,15 @@ export function ManualNotificationSection() {
 
       if (error) throw error
 
+      // Success toast
+      toast.success(
+        `${formData.type === 'email' ? '📧 Email' : '📱 WhatsApp'} notification sent successfully to ${formData.recipient}!`,
+        { 
+          duration: 4000,
+          id: loadingToast 
+        }
+      )
+
       setSuccess("Notification sent successfully!")
       setFormData({
         type: "",
@@ -50,7 +77,18 @@ export function ManualNotificationSection() {
         subject: "",
       })
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      const errorMessage = error instanceof Error ? error.message : "An error occurred"
+      
+      // Error toast
+      toast.error(
+        `Failed to send notification: ${errorMessage}`,
+        { 
+          duration: 5000,
+          id: loadingToast 
+        }
+      )
+      
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }

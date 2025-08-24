@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Plus, Minus, Trash2, ShoppingCart } from "lucide-react"
 import Image from "next/image"
 import { useCart } from "@/hooks/use-cart"
+import toast from "react-hot-toast"
 import { useCurrency } from "@/contexts/currency-context"
 
 interface CartItem {
@@ -63,10 +64,34 @@ export function CheckoutCart({ onSelectedItemsChange }: CheckoutCartProps) {
   }
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
+    const item = state.items.find(item => item.id === itemId)
+    
     if (newQuantity > 0) {
       updateQuantity(itemId, newQuantity)
+      
+      // Show quantity update toast
+      if (item) {
+        toast.success(
+          `Updated "${item.title}" quantity to ${newQuantity}`,
+          { 
+            duration: 1500,
+            icon: '📝'
+          }
+        )
+      }
     } else {
       removeFromCart(itemId)
+      
+      // Show removal toast
+      if (item) {
+        toast.success(
+          `🗑️ "${item.title}" removed from cart`,
+          { 
+            duration: 2000
+          }
+        )
+      }
+      
       // Remove from selected if deleted
       const newSelected = new Set(selectedItems)
       newSelected.delete(itemId)

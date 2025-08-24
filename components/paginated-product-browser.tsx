@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import { useCart } from "@/hooks/use-cart"
+import toast from "react-hot-toast"
 import { useCurrency } from "@/contexts/currency-context"
 import { WhatsAppProductSupport } from "@/components/whatsapp-support"
 import { Spinner } from "@/components/ui/spinner"
@@ -203,6 +204,15 @@ export function PaginatedProductBrowser() {
       price: Number.parseFloat(product.price),
       image_url: product.image_url,
     })
+
+    // Show success toast
+    toast.success(
+      `📚 "${product.title}" added to cart!`,
+      { 
+        duration: 2000,
+        icon: '🛒'
+      }
+    )
   }
 
   // Price ranges based on currency

@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { createClient } from "@/lib/client"
+import toast from "react-hot-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -49,6 +50,9 @@ export function EditProductForm({ product }: EditProductFormProps) {
     setIsLoading(true)
     setError(null)
 
+    // Show loading toast
+    const loadingToast = toast.loading("Updating product...")
+
     const supabase = createClient()
 
     try {
@@ -62,9 +66,29 @@ export function EditProductForm({ product }: EditProductFormProps) {
 
       if (error) throw error
 
+      // Success toast
+      toast.success(
+        `📚 Product "${formData.title}" updated successfully!`,
+        { 
+          duration: 3000,
+          id: loadingToast 
+        }
+      )
+
       router.push("/admin/products")
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      const errorMessage = error instanceof Error ? error.message : "An error occurred"
+      
+      // Error toast
+      toast.error(
+        `Failed to update product: ${errorMessage}`,
+        { 
+          duration: 5000,
+          id: loadingToast 
+        }
+      )
+      
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }

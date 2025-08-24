@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Eye } from "lucide-react"
 import Image from "next/image"
 import { useCart } from "@/hooks/use-cart"
+import toast from "react-hot-toast"
 import { useCurrency } from "@/contexts/currency-context"
 import { WhatsAppProductSupport } from "@/components/whatsapp-support"
 
@@ -38,6 +39,15 @@ export function ProductGrid({ products }: ProductGridProps) {
       price: Number.parseFloat(product.price),
       image_url: product.image_url,
     })
+
+    // Show success toast
+    toast.success(
+      `📚 "${product.title}" added to cart!`,
+      { 
+        duration: 2000,
+        icon: '🛒'
+      }
+    )
   }
 
   if (products.length === 0) {

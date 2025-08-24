@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 import { CreditCard, Wallet } from "lucide-react"
+import { createClient } from "@/lib/client"
+import toast from "react-hot-toast"
 
 interface PaymentMethod {
   id?: string
@@ -54,6 +56,12 @@ export function PaymentMethodForm({ paymentMethod }: PaymentMethodFormProps) {
     setIsLoading(true)
     setError(null)
 
+    const isEditing = !!paymentMethod?.id
+    const action = isEditing ? "Updating" : "Creating"
+    
+    // Show loading toast
+    const loadingToast = toast.loading(`${action} payment method "${formData.name}"...`)
+
     try {
       const url = paymentMethod?.id 
         ? `/api/payment-methods/${paymentMethod.id}`
@@ -74,9 +82,29 @@ export function PaymentMethodForm({ paymentMethod }: PaymentMethodFormProps) {
         throw new Error(errorData.error || "Failed to save payment method")
       }
 
+      // Success toast
+      toast.success(
+        `💳 Payment method "${formData.name}" ${isEditing ? 'updated' : 'created'} successfully!`,
+        { 
+          duration: 3000,
+          id: loadingToast 
+        }
+      )
+
       router.push("/admin/settings/payment-methods")
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      const errorMessage = error instanceof Error ? error.message : "An error occurred"
+      
+      // Error toast
+      toast.error(
+        `Failed to ${isEditing ? 'update' : 'create'} payment method: ${errorMessage}`,
+        { 
+          duration: 5000,
+          id: loadingToast 
+        }
+      )
+      
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }

@@ -8,6 +8,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
 import { createClient } from "@/lib/client"
+import toast from "react-hot-toast"
 import { useRouter } from "next/navigation"
 import { useCurrency } from "@/contexts/currency-context"
 import {
@@ -43,6 +44,14 @@ export function ProductsTable({ products }: ProductsTableProps) {
 
   const handleDeleteProduct = async (productId: string) => {
     setIsDeleting(true)
+    
+    // Find the product to get its title for the toast
+    const product = products.find(p => p.id === productId)
+    const productTitle = product?.title || "Product"
+
+    // Show loading toast
+    const loadingToast = toast.loading(`Deleting "${productTitle}"...`)
+
     const supabase = createClient()
 
     try {
@@ -53,10 +62,28 @@ export function ProductsTable({ products }: ProductsTableProps) {
 
       if (error) throw error
 
+      // Success toast
+      toast.success(
+        `🗑️ Product "${productTitle}" deleted successfully!`,
+        { 
+          duration: 3000,
+          id: loadingToast 
+        }
+      )
+
       // Refresh the page to update the products list
       router.refresh()
       setDeleteProductId(null)
     } catch (error) {
+      // Error toast
+      toast.error(
+        `Failed to delete product: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { 
+          duration: 5000,
+          id: loadingToast 
+        }
+      )
+      
       console.error("Error deleting product:", error)
     } finally {
       setIsDeleting(false)
