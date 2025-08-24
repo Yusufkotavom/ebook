@@ -3,7 +3,7 @@
 import { useCart } from "@/hooks/use-cart"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, User, LogOut, MessageCircle } from "lucide-react"
+import { ShoppingCart, User, LogOut, MessageCircle, Search, Menu } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/client"
@@ -40,46 +40,42 @@ export function Header() {
   }
 
   return (
-    <header className="bg-white shadow-sm border-b">
-      <div className="container mx-auto px-4 py-4">
+    <header className="bg-white shadow-sm border-b sticky top-0 z-40">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo/Brand */}
           <Link href="/" className="text-xl font-bold text-gray-900">
-            Ebook Store
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">ES</span>
+              </div>
+              <span className="hidden sm:block">Ebook Store</span>
+            </div>
           </Link>
 
-          {/* Navigation */}
-          <div className="flex items-center space-x-4">
-            {/* WhatsApp Support */}
-            <WhatsAppButton
-              type="general"
-              variant="outline"
-              size="sm"
-              className="hidden sm:flex border-green-200 text-green-700 hover:bg-green-50"
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Support
-            </WhatsAppButton>
-
-            {/* Mobile WhatsApp */}
-            <WhatsAppButton
-              type="general"
-              variant="outline"
-              size="sm"
-              className="sm:hidden border-green-200 text-green-700 hover:bg-green-50"
-              icon={false}
-            >
-              <MessageCircle className="h-4 w-4" />
-            </WhatsAppButton>
-
-            {/* Products Link */}
+          {/* Desktop Navigation - Hidden on mobile since we have bottom nav */}
+          <div className="hidden md:flex items-center space-x-6">
             <Link href="/products">
               <Button variant="ghost" size="sm">
                 Products
               </Button>
             </Link>
 
-            {/* Cart */}
+            {/* WhatsApp Support - Desktop only */}
+            <WhatsAppButton
+              type="general"
+              variant="outline"
+              size="sm"
+              className="border-green-200 text-green-700 hover:bg-green-50"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Support
+            </WhatsAppButton>
+          </div>
+
+          {/* Right Side - Desktop Only */}
+          <div className="hidden md:flex items-center space-x-4">
+            {/* Cart - Desktop */}
             <Link href="/checkout" className="relative">
               <Button variant="outline" size="sm">
                 <ShoppingCart className="h-4 w-4" />
@@ -94,7 +90,7 @@ export function Header() {
               </Button>
             </Link>
 
-            {/* User Menu */}
+            {/* User Menu - Desktop */}
             {!isLoading && (
               <>
                 {user ? (
@@ -124,6 +120,25 @@ export function Header() {
                   </div>
                 )}
               </>
+            )}
+          </div>
+
+          {/* Mobile Right Side - Only Search and Cart Count */}
+          <div className="flex md:hidden items-center space-x-3">
+            {/* Search Button - Mobile */}
+            <Link href="/products">
+              <Button variant="ghost" size="sm" className="p-2">
+                <Search className="h-5 w-5" />
+              </Button>
+            </Link>
+
+            {/* Cart Badge - Mobile (no button, just indicator) */}
+            {state.itemCount > 0 && (
+              <div className="relative">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">{state.itemCount}</span>
+                </div>
+              </div>
             )}
           </div>
         </div>

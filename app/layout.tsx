@@ -7,11 +7,11 @@ import { CartProvider } from "@/hooks/use-cart"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { CurrencyProvider } from "@/contexts/currency-context"
+import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 
 export const metadata: Metadata = {
-  title: "EbookStore - Digital Books & Educational Resources",
-  description: "Your premier destination for digital books and educational resources",
-  generator: "v0.app",
+  title: "Ebook Store",
+  description: "Your digital library awaits",
 }
 
 export default function RootLayout({
@@ -35,8 +35,9 @@ html {
           <CartProvider>
             <div className="min-h-screen flex flex-col">
               <Header />
-              <main className="flex-1">{children}</main>
+              <main className="flex-1 pb-20 md:pb-0">{children}</main>
               <Footer />
+              <MobileBottomNav />
             </div>
           </CartProvider>
         </CurrencyProvider>
