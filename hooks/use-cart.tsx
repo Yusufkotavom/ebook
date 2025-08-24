@@ -9,6 +9,9 @@ interface CartItem {
   price: number
   image_url: string | null
   quantity: number
+  isSubscription?: boolean
+  subscriptionPackageId?: string
+  duration_days?: number | null
 }
 
 interface CartState {
