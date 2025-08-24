@@ -277,8 +277,8 @@ export function PaginatedProductBrowser() {
             className="flex-1"
             size="sm"
           >
-            <Plus className="h-4 w-4 mr-1" />
-            Add to Cart
+            <Plus className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Add to Cart</span>
           </Button>
           <WhatsAppProductSupport 
             product={{
@@ -578,23 +578,23 @@ export function PaginatedProductBrowser() {
                             <div className="text-xl font-bold text-blue-600 mb-2">
                               {formatPrice(product.price)}
                             </div>
-                            <div className="flex gap-1">
-                              <Button
-                                onClick={() => handleAddToCart(product)}
-                                size="sm"
-                                className="flex-1"
-                              >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Add
-                              </Button>
-                              <WhatsAppProductSupport 
-                                product={{
-                                  title: product.title,
-                                  author: product.author,
-                                  price: formatPrice(product.price)
-                                }}
-                              />
-                            </div>
+                                                         <div className="flex gap-1">
+                               <Button
+                                 onClick={() => handleAddToCart(product)}
+                                 size="sm"
+                                 className="flex-1"
+                               >
+                                 <Plus className="h-4 w-4 sm:mr-1" />
+                                 <span className="hidden sm:inline">Add</span>
+                               </Button>
+                               <WhatsAppProductSupport 
+                                 product={{
+                                   title: product.title,
+                                   author: product.author,
+                                   price: formatPrice(product.price)
+                                 }}
+                               />
+                             </div>
                           </div>
                         </div>
                       </div>

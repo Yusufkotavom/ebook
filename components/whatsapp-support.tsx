@@ -193,29 +193,26 @@ interface WhatsAppProductSupportProps {
   className?: string
 }
 
-export function WhatsAppProductSupport({ productTitle, className }: WhatsAppProductSupportProps) {
+export function WhatsAppProductSupport({ product, className }: { product?: { title?: string; author?: string; price?: string }; className?: string }) {
+  const handleClick = () => {
+    const message = product 
+      ? `Hi! I'm interested in "${product.title}" by ${product.author} (${product.price}). Is this available?`
+      : "Hi! I have a question about one of your ebooks."
+    
+    const url = `https://wa.me/6285799520350?text=${encodeURIComponent(message)}`
+    window.open(url, '_blank')
+  }
+
   return (
-    <div className={cn("flex gap-2", className)}>
-      <WhatsAppButton
-        type="product_question"
-        options={{ productTitle }}
-        variant="outline"
-        size="sm"
-        className="border-green-200 text-green-700 hover:bg-green-50"
-      >
-        Ask Question
-      </WhatsAppButton>
-      
-      <WhatsAppButton
-        type="product_availability"
-        options={{ productTitle }}
-        variant="outline"
-        size="sm"
-        className="border-green-200 text-green-700 hover:bg-green-50"
-      >
-        Check Availability
-      </WhatsAppButton>
-    </div>
+    <Button
+      onClick={handleClick}
+      variant="outline"
+      size="sm"
+      className={cn("border-green-200 text-green-700 hover:bg-green-50", className)}
+    >
+      <MessageCircle className="h-4 w-4 sm:mr-1" />
+      <span className="hidden sm:inline">Ask</span>
+    </Button>
   )
 }
 
