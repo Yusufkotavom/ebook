@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/server"
 import { formatPriceServer } from "@/lib/currency-server"
 import { type NextRequest, NextResponse } from "next/server"
+import emailService from "@/lib/email-service"
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,26 +30,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
 
-    // Create download links message
+    // Format individual item prices
+    const itemPrice = await formatPriceServer(order.total_amount / order.order_items.length)
+    
+    // Prepare order data for email template
+    const orderItems = order.order_items.map((item, index) => ({
+      title: item.products?.title || 'Unknown Product',
+      author: item.products?.author || 'Unknown Author',
+      price: itemPrice, // Use pre-formatted price
+      quantity: 1
+    }))
+
     const downloadLinks = order.order_items
       .filter((item) => item.products?.download_url)
-      .map((item) => `${item.products?.title} by ${item.products?.author}: ${item.products?.download_url}`)
-      .join("\n")
+      .map((item) => item.products?.download_url)
 
     // Format price using the current currency system
     const formattedTotal = await formatPriceServer(order.total_amount)
 
-    const message = `Payment Confirmed! 🎉
+    // Generate email using template
+    const orderEmailData = {
+      customerName: email.split('@')[0], // Extract name from email as fallback
+      customerEmail: email,
+      orderId: orderId.slice(0, 8),
+      orderTotal: formattedTotal,
+      orderItems: orderItems,
+      downloadLinks: downloadLinks
+    }
 
-Your order #${orderId.slice(0, 8)} has been processed successfully.
+    const emailData = emailService.generatePaymentConfirmationEmail(orderEmailData)
+    
+    // Send actual email
+    const emailResult = await emailService.sendEmail(emailData)
 
-Download your ebooks:
-${downloadLinks}
-
-Total: ${formattedTotal}
-
-Thank you for your purchase!
-- Ebook Store Team`
+    // Create message for logging
+    const logMessage = `Payment Confirmed! Order #${orderId.slice(0, 8)} - Total: ${formattedTotal}`
 
     // Log notification
     const { error: logError } = await supabase.from("notifications").insert([
@@ -56,7 +72,9 @@ Thank you for your purchase!
         order_id: orderId,
         type: "email",
         recipient: email,
-        message: message,
+        message: logMessage,
+        status: emailResult.success ? 'sent' : 'failed',
+        error_message: emailResult.error || null,
       },
     ])
 
@@ -64,11 +82,19 @@ Thank you for your purchase!
       console.error("Error logging notification:", logError)
     }
 
-    // In production, send actual email with download links
-    console.log(`Payment confirmation sent to ${email}`)
-    console.log(`Message: ${message}`)
-
-    return NextResponse.json({ success: true, message: "Payment confirmation sent" })
+    if (emailResult.success) {
+      console.log(`✅ Payment confirmation email sent to ${email}`)
+      return NextResponse.json({ 
+        success: true, 
+        message: "Payment confirmation sent successfully",
+        messageId: emailResult.messageId 
+      })
+    } else {
+      console.error(`❌ Failed to send payment confirmation email: ${emailResult.error}`)
+      return NextResponse.json({ 
+        error: `Failed to send email: ${emailResult.error}` 
+      }, { status: 500 })
+    }
   } catch (error) {
     console.error("Error sending payment confirmation:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

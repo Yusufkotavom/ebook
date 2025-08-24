@@ -40,7 +40,18 @@ INSERT INTO public.app_settings (setting_key, setting_value, setting_type, descr
 ('enable_guest_checkout', 'true', 'boolean', 'Allow guest checkout without registration', false),
 ('auto_approve_payments', 'false', 'boolean', 'Automatically approve manual payments', false),
 ('featured_categories', '["Technology", "Business", "Education"]', 'json', 'Featured product categories', true),
-('social_links', '{"facebook": "", "instagram": "", "twitter": ""}', 'json', 'Social media links', true)
+('social_links', '{"facebook": "", "instagram": "", "twitter": ""}', 'json', 'Social media links', true),
+-- Email Configuration Settings
+('email_provider', 'brevo_api', 'string', 'Email service provider (brevo_api or brevo_smtp)', false),
+('email_from_address', 'noreply@yourdomain.com', 'string', 'Default from email address', false),
+('email_from_name', 'Ebook Store', 'string', 'Default from name', false),
+('email_reply_to', 'support@yourdomain.com', 'string', 'Reply-to email address', false),
+('brevo_api_key', '', 'string', 'Brevo API key for email service', false),
+('smtp_host', 'smtp-relay.brevo.com', 'string', 'SMTP server host', false),
+('smtp_port', '587', 'number', 'SMTP server port', false),
+('smtp_user', '', 'string', 'SMTP username', false),
+('smtp_pass', '', 'string', 'SMTP password', false),
+('email_notifications_enabled', 'true', 'boolean', 'Enable automatic email notifications', false)
 ON CONFLICT (setting_key) DO NOTHING;
 
 -- Grant permissions

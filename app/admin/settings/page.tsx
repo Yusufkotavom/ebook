@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Mail } from "lucide-react"
 import Link from "next/link"
 import { CurrencySettingsForm } from "@/components/currency-settings-form"
 
@@ -59,6 +59,29 @@ export default async function AdminSettingsPage() {
               <Button asChild>
                 <Link href="/admin/settings/payment-methods">
                   Manage Payment Methods
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Configuration
+            </CardTitle>
+            <CardDescription>Configure Brevo email service for transactional emails</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Set up Brevo email service to send order confirmations, payment notifications, and other transactional emails.
+              </p>
+              <Button asChild>
+                <Link href="/admin/settings/email">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Configure Email Settings
                 </Link>
               </Button>
             </div>
