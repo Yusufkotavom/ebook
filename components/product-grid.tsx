@@ -113,17 +113,17 @@ export function ProductGrid({ products }: ProductGridProps) {
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
                   size="sm"
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add to Cart
+                  <Plus className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Add to Cart</span>
                 </Button>
                 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="px-3"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
+                <WhatsAppProductSupport 
+                  product={{
+                    title: product.title,
+                    author: product.author,
+                    price: formatPrice(product.price)
+                  }}
+                />
               </div>
             </div>
           </CardFooter>

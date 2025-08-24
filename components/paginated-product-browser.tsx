@@ -165,16 +165,13 @@ export function PaginatedProductBrowser() {
     router.push(newURL, { scroll: false })
   }, [router])
 
-  // Handle search with debouncing
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchTerm !== (searchParams.get("search") || "")) {
-        updateURL(1, searchTerm, sortBy, priceRange)
-      }
-    }, 500) // 500ms debounce
-
-    return () => clearTimeout(timer)
-  }, [searchTerm, sortBy, priceRange, searchParams, updateURL])
+  // Handle search on Enter key only (removed debouncing for simpler queries)
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchTerm !== (searchParams.get("search") || "")) {
+      updateURL(1, searchTerm, sortBy, priceRange)
+    }
+  }
 
   // Fetch products when parameters change
   useEffect(() => {
@@ -452,16 +449,18 @@ export function PaginatedProductBrowser() {
           </div>
 
           {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search books, authors, publishers..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          <form onSubmit={handleSearchSubmit} className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search books, authors, publishers... (Press Enter to search)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </form>
 
           {/* Filters */}
           {showFilters && (
