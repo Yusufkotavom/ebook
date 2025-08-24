@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ButtonSpinner, CardLoader } from "@/components/ui/spinner"
+import { CheckoutCart } from "@/components/checkout-cart"
 import { useCart } from "@/hooks/use-cart"
 import { useCurrency } from "@/contexts/currency-context"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import type { User } from "@supabase/supabase-js"
 
 interface UserProfile {
@@ -21,7 +21,7 @@ interface UserProfile {
 }
 
 export default function CheckoutPage() {
-  const { state, clearCart } = useCart()
+  const { state, clearCart, removeFromCart } = useCart()
   const { formatPrice } = useCurrency()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -33,7 +33,15 @@ export default function CheckoutPage() {
   const [user, setUser] = useState<User | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [selectedItems, setSelectedItems] = useState<any[]>([])
+  const [selectedTotal, setSelectedTotal] = useState(0)
   const router = useRouter()
+
+  // Handle selected items change from CheckoutCart
+  const handleSelectedItemsChange = useCallback((items: any[], total: number) => {
+    setSelectedItems(items)
+    setSelectedTotal(total)
+  }, [])
 
   // Check if user is logged in when component mounts
   useEffect(() => {
@@ -68,6 +76,13 @@ export default function CheckoutPage() {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+
+    // Validate selected items
+    if (selectedItems.length === 0) {
+      setError("Please select at least one item to checkout")
+      setIsLoading(false)
+      return
+    }
 
     // Validate required fields
     if (!fullName.trim()) {
@@ -174,7 +189,7 @@ export default function CheckoutPage() {
 
       const orderData = {
         user_id: userId,
-        total_amount: state.total,
+        total_amount: selectedTotal,
         status: "pending" as const,
         payment_method: "manual",
       }
@@ -192,8 +207,8 @@ export default function CheckoutPage() {
 
       console.log("[v0] Order created:", createdOrder.id)
 
-      // Create order items
-      const orderItems = state.items.map((item) => ({
+      // Create order items (only selected items)
+      const orderItems = selectedItems.map((item) => ({
         order_id: createdOrder.id,
         product_id: item.id,
         quantity: item.quantity,
@@ -210,8 +225,13 @@ export default function CheckoutPage() {
       }
 
       console.log("[v0] Checkout completed successfully")
-      clearCart()
-      router.push(`/checkout/payment?order=${createdOrder.id}&total=${state.total}`)
+      
+      // Remove only selected items from cart (keep unselected for future purchase)
+      selectedItems.forEach(item => {
+        removeFromCart(item.id)
+      })
+      
+      router.push(`/checkout/payment?order=${createdOrder.id}&total=${selectedTotal}`)
     } catch (error: unknown) {
       console.log("[v0] Checkout error:", error)
       setError(error instanceof Error ? error.message : "An error occurred during checkout")
@@ -271,44 +291,8 @@ export default function CheckoutPage() {
         <h1 className="text-3xl font-bold mb-8">Checkout</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Order Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
-              <CardDescription>{state.itemCount} items</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {state.items.map((item) => (
-                  <div key={item.id} className="flex items-center space-x-4">
-                    <div className="relative h-16 w-12">
-                      <Image
-                        src={item.image_url || "/placeholder.svg?height=64&width=48&query=book cover"}
-                        alt={item.title}
-                        fill
-                        className="object-cover rounded"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-sm">{item.title}</h4>
-                      <p className="text-xs text-gray-500">by {item.author}</p>
-                      <p className="text-sm">Qty: {item.quantity}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatPrice(item.price * item.quantity)}</p>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center text-lg font-semibold">
-                    <span>Total:</span>
-                    <span>{formatPrice(state.total)}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Enhanced Order Summary with Quantity Controls & Selection */}
+          <CheckoutCart onSelectedItemsChange={handleSelectedItemsChange} />
 
           {/* Checkout Form */}
           <Card>
@@ -441,11 +425,18 @@ export default function CheckoutPage() {
 
                 {error && <p className="text-sm text-red-500">{error}</p>}
 
-                <Button type="submit" className="w-full" size="lg" disabled={isLoading || isCheckingAuth}>
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  size="lg" 
+                  disabled={isLoading || isCheckingAuth || selectedItems.length === 0}
+                >
                   {isLoading && <ButtonSpinner />}
-                  {isLoading 
-                    ? (user ? "Processing..." : "Creating Account & Order...") 
-                    : (user ? "Place Order" : "Create Account & Place Order")
+                  {selectedItems.length === 0 
+                    ? "Select items to checkout"
+                    : isLoading 
+                      ? (user ? "Processing..." : "Creating Account & Order...") 
+                      : (user ? `Place Order (${formatPrice(selectedTotal)})` : `Create Account & Place Order (${formatPrice(selectedTotal)})`)
                   }
                 </Button>
 

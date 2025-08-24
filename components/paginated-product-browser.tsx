@@ -84,7 +84,7 @@ export function PaginatedProductBrowser() {
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
   const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "newest")
   const [priceRange, setPriceRange] = useState(searchParams.get("priceRange") || "all")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [showFilters, setShowFilters] = useState(false)
   
   // Current page
