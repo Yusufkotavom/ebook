@@ -17,8 +17,11 @@ export default async function AdminOrdersPage() {
       payment_method,
       user_id,
       guest_email,
+      guest_name,
+      guest_whatsapp,
       created_at,
       updated_at,
+      profiles(email, full_name, whatsapp_number),
       order_items(
         quantity,
         price,

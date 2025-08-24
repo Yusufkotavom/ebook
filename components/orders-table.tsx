@@ -16,8 +16,15 @@ interface Order {
   status: string
   payment_method: string
   created_at: string
+  user_id: string | null
   guest_email: string | null
-  profiles: { email: string } | null
+  guest_name: string | null
+  guest_whatsapp: string | null
+  profiles: { 
+    email: string
+    full_name: string | null
+    whatsapp_number: string | null
+  } | null
   order_items: Array<{
     quantity: number
     price: string
