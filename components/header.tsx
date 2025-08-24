@@ -1,43 +1,16 @@
 "use client"
 
 import { useCart } from "@/hooks/use-cart"
+import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, User, LogOut, MessageCircle, Search, Menu } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/client"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { WhatsAppButton } from "@/components/whatsapp-support"
 
 export function Header() {
   const { state } = useCart()
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setIsLoading(false)
-    }
-
-    checkUser()
-
-    // Listen for auth changes
-    const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-  }
+  const { user, isLoading, signOut } = useAuth()
 
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-40">
@@ -101,7 +74,7 @@ export function Header() {
                         Dashboard
                       </Button>
                     </Link>
-                    <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                                                 <Button variant="ghost" size="sm" onClick={signOut}>
                       <LogOut className="h-4 w-4" />
                     </Button>
                   </div>

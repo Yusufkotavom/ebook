@@ -1,44 +1,21 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Home, Search, ShoppingCart, User, MessageCircle, Grid3X3, LogIn, LogOut } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useCart } from "@/hooks/use-cart"
-import { createClient } from "@/lib/client"
+import { useAuth } from "@/contexts/auth-context"
 import { openWhatsApp } from "@/lib/whatsapp"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { cn } from "@/lib/utils"
 
 export function MobileBottomNav() {
   const router = useRouter()
   const pathname = usePathname()
   const { state } = useCart()
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setIsLoading(false)
-    }
-
-    checkUser()
-
-    // Listen for auth changes
-    const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+  const { user, isLoading, signOut } = useAuth()
 
   const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    await signOut()
     router.push("/")
   }
 

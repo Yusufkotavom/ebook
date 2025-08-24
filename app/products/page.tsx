@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/server"
-import { ProductTableView } from "@/components/product-table-view"
+import { MobileProductBrowser } from "@/components/mobile-product-browser"
 import { FloatingCart } from "@/components/floating-cart"
 
 export default async function ProductsPage() {
@@ -16,18 +16,8 @@ export default async function ProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">All Products</h1>
-          <p className="text-gray-600">Browse our complete ebook collection</p>
-        </div>
-
-        <ProductTableView products={products || []} />
-      </main>
-
+    <div className="min-h-screen bg-gray-50">
+      <MobileProductBrowser products={products || []} />
       <FloatingCart />
     </div>
   )

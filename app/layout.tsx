@@ -7,6 +7,7 @@ import { CartProvider } from "@/hooks/use-cart"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { CurrencyProvider } from "@/contexts/currency-context"
+import { AuthProvider } from "@/contexts/auth-context"
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 
 export const metadata: Metadata = {
@@ -31,16 +32,18 @@ html {
         `}</style>
       </head>
       <body>
-        <CurrencyProvider>
-          <CartProvider>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-1 pb-20 md:pb-0">{children}</main>
-              <Footer />
-              <MobileBottomNav />
-            </div>
-          </CartProvider>
-        </CurrencyProvider>
+        <AuthProvider>
+          <CurrencyProvider>
+            <CartProvider>
+              <div className="min-h-screen flex flex-col">
+                <Header />
+                <main className="flex-1 pb-20 md:pb-0">{children}</main>
+                <Footer />
+                <MobileBottomNav />
+              </div>
+            </CartProvider>
+          </CurrencyProvider>
+        </AuthProvider>
       </body>
     </html>
   )
