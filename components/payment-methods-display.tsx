@@ -6,6 +6,7 @@ import { CreditCard, Wallet, Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useCurrency } from "@/contexts/currency-context"
+import { WhatsAppPaymentSupport } from "@/components/whatsapp-support"
 
 interface PaymentMethod {
   id: string
@@ -21,9 +22,10 @@ interface PaymentMethod {
 interface PaymentMethodsDisplayProps {
   paymentMethods: PaymentMethod[]
   orderTotal: number
+  orderId?: string
 }
 
-export function PaymentMethodsDisplay({ paymentMethods, orderTotal }: PaymentMethodsDisplayProps) {
+export function PaymentMethodsDisplay({ paymentMethods, orderTotal, orderId }: PaymentMethodsDisplayProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const { formatPrice } = useCurrency()
 
@@ -39,12 +41,13 @@ export function PaymentMethodsDisplay({ paymentMethods, orderTotal }: PaymentMet
 
   const formatAccountNumber = (accountNumber: string | null, type: string) => {
     if (!accountNumber) return ""
-    if (type === "bank") {
-      // Format bank account: 1234567890 -> 1234-567-890
-      return accountNumber.replace(/(\d{4})(\d{3})(\d{3})/, "$1-$2-$3")
+    
+    if (type === "ewallet") {
+      // Format phone numbers
+      return accountNumber.replace(/(\d{3})(\d{4})(\d{4})/, "$1-$2-$3")
     } else {
-      // Format phone number: 081234567890 -> 0812-3456-7890
-      return accountNumber.replace(/(\d{4})(\d{4})(\d{4})/, "$1-$2-$3")
+      // Format bank account numbers
+      return accountNumber.replace(/(\d{4})/g, "$1 ").trim()
     }
   }
 
@@ -59,7 +62,7 @@ export function PaymentMethodsDisplay({ paymentMethods, orderTotal }: PaymentMet
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="text-center mb-6">
         <h3 className="text-lg font-semibold mb-2">Total Amount to Pay</h3>
         <div className="text-3xl font-bold text-blue-600">{formatPrice(orderTotal)}</div>
@@ -71,20 +74,22 @@ export function PaymentMethodsDisplay({ paymentMethods, orderTotal }: PaymentMet
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {method.type === "bank" ? (
-                    <CreditCard className="h-5 w-5 text-blue-600" />
-                  ) : (
-                    <Wallet className="h-5 w-5 text-green-600" />
-                  )}
+                  <div className="p-2 bg-gray-100 rounded-full">
+                    {method.type === "bank" ? (
+                      <CreditCard className="h-5 w-5 text-gray-600" />
+                    ) : (
+                      <Wallet className="h-5 w-5 text-gray-600" />
+                    )}
+                  </div>
                   <div>
                     <CardTitle className="text-lg">{method.name}</CardTitle>
                     <CardDescription>
-                      {method.type === "bank" ? "Bank Transfer" : "E-Wallet Transfer"}
+                      {method.type === "bank" ? "Bank Transfer" : "E-Wallet"}
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant={method.type === "bank" ? "default" : "secondary"}>
-                  {method.type === "bank" ? "Bank" : "E-Wallet"}
+                <Badge variant="default" className="bg-green-100 text-green-800">
+                  Active
                 </Badge>
               </div>
             </CardHeader>
@@ -92,22 +97,29 @@ export function PaymentMethodsDisplay({ paymentMethods, orderTotal }: PaymentMet
               {method.account_number && (
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 font-medium">
                       {method.type === "bank" ? "Account Number" : "Phone Number"}
                     </p>
-                    <p className="font-mono text-lg font-semibold">
+                    <p className="font-mono text-lg font-bold">
                       {formatAccountNumber(method.account_number, method.type)}
                     </p>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => method.account_number && copyToClipboard(method.account_number, `${method.id}-number`)}
+                    onClick={() => copyToClipboard(method.account_number!, `${method.id}-account`)}
+                    className="shrink-0"
                   >
-                    {copiedField === `${method.id}-number` ? (
-                      <Check className="h-4 w-4" />
+                    {copiedField === `${method.id}-account` ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Copied
+                      </>
                     ) : (
-                      <Copy className="h-4 w-4" />
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </>
                     )}
                   </Button>
                 </div>
@@ -116,18 +128,25 @@ export function PaymentMethodsDisplay({ paymentMethods, orderTotal }: PaymentMet
               {method.account_name && (
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="text-sm text-gray-600">Account Name</p>
+                    <p className="text-sm text-gray-600 font-medium">Account Name</p>
                     <p className="font-semibold">{method.account_name}</p>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => method.account_name && copyToClipboard(method.account_name, `${method.id}-name`)}
+                    onClick={() => copyToClipboard(method.account_name!, `${method.id}-name`)}
+                    className="shrink-0"
                   >
                     {copiedField === `${method.id}-name` ? (
-                      <Check className="h-4 w-4" />
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Copied
+                      </>
                     ) : (
-                      <Copy className="h-4 w-4" />
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </>
                     )}
                   </Button>
                 </div>
@@ -149,20 +168,29 @@ export function PaymentMethodsDisplay({ paymentMethods, orderTotal }: PaymentMet
         ))}
       </div>
 
-      <Card className="border-amber-200 bg-amber-50">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
-            <div className="space-y-2 text-sm">
-              <p className="font-medium text-amber-800">Important Notes:</p>
-              <ul className="space-y-1 text-amber-700">
-                <li>• Please transfer the exact amount shown above</li>
-                <li>• Keep your payment proof (screenshot/receipt)</li>
-                <li>• Your order will be processed after payment verification</li>
-                <li>• If you have any issues, contact our support team</li>
-              </ul>
-            </div>
-          </div>
+      {/* WhatsApp Payment Support Section */}
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold mb-4 text-center">After Payment</h3>
+        <WhatsAppPaymentSupport 
+          orderId={orderId}
+          amount={formatPrice(orderTotal)}
+          paymentMethod={paymentMethods.map(m => m.name).join(" or ")}
+        />
+      </div>
+
+      {/* Important Notes */}
+      <Card className="border-orange-200 bg-orange-50">
+        <CardHeader>
+          <CardTitle className="text-orange-800 text-lg">Important Notes</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <ul className="text-sm text-orange-700 space-y-1">
+            <li>• Please transfer the exact amount: <strong>{formatPrice(orderTotal)}</strong></li>
+            <li>• Send your payment proof via WhatsApp for faster verification</li>
+            <li>• Your download links will be sent after payment confirmation</li>
+            <li>• Payment verification typically takes 1-2 hours during business hours</li>
+            <li>• Keep your transaction receipt until you receive confirmation</li>
+          </ul>
         </CardContent>
       </Card>
     </div>

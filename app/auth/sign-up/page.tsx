@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ButtonSpinner, PageLoader } from "@/components/ui/spinner"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
@@ -98,20 +99,7 @@ export default function SignUpPage() {
 
   // Show loading while checking authentication
   if (isCheckingAuth) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-sm">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-              <p className="text-center text-sm text-gray-500 mt-4">Checking authentication...</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
+    return <PageLoader text="Checking authentication..." />
   }
 
   return (
@@ -134,6 +122,7 @@ export default function SignUpPage() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -145,6 +134,7 @@ export default function SignUpPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -155,6 +145,7 @@ export default function SignUpPage() {
                     placeholder="+62812345678"
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
+                    disabled={isLoading}
                   />
                   <p className="text-xs text-gray-500">Optional - for order notifications</p>
                 </div>
@@ -166,6 +157,7 @@ export default function SignUpPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -176,10 +168,12 @@ export default function SignUpPage() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
                 <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <ButtonSpinner />}
                   {isLoading ? "Creating account..." : "Sign Up"}
                 </Button>
               </div>

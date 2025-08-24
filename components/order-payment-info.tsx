@@ -7,6 +7,7 @@ import { CreditCard, Wallet, Copy, Check, ExternalLink } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/client"
 import { useCurrency } from "@/contexts/currency-context"
+import { WhatsAppOrderSupport } from "@/components/whatsapp-support"
 import Link from "next/link"
 
 interface PaymentMethod {
@@ -16,6 +17,8 @@ interface PaymentMethod {
   account_number: string | null
   account_name: string | null
   instructions: string | null
+  is_active: boolean
+  display_order: number
 }
 
 interface OrderPaymentInfoProps {
@@ -61,10 +64,10 @@ export function OrderPaymentInfo({ orderId, orderTotal, orderStatus }: OrderPaym
 
   const formatAccountNumber = (accountNumber: string | null, type: string) => {
     if (!accountNumber) return ""
-    if (type === "bank") {
-      return accountNumber.replace(/(\d{4})(\d{3})(\d{3})/, "$1-$2-$3")
+    if (type === "ewallet") {
+      return accountNumber.replace(/(\d{3})(\d{4})(\d{4})/, "$1-$2-$3")
     } else {
-      return accountNumber.replace(/(\d{4})(\d{4})(\d{4})/, "$1-$2-$3")
+      return accountNumber.replace(/(\d{4})/g, "$1 ").trim()
     }
   }
 
@@ -111,7 +114,15 @@ export function OrderPaymentInfo({ orderId, orderTotal, orderStatus }: OrderPaym
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* WhatsApp Order Support */}
+          <div>
+            <WhatsAppOrderSupport 
+              orderId={orderId}
+              className="mb-4"
+            />
+          </div>
+
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
@@ -122,41 +133,33 @@ export function OrderPaymentInfo({ orderId, orderTotal, orderStatus }: OrderPaym
               {isExpanded ? "Hide" : "Show"} Payment Methods
             </Button>
           </div>
-          
+
           {isExpanded && (
             <div className="space-y-3 pt-3 border-t border-orange-200">
               {paymentMethods.length > 0 ? (
                 paymentMethods.slice(0, 2).map((method) => (
                   <div key={method.id} className="p-3 bg-white rounded-lg border border-orange-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {method.type === "bank" ? (
-                          <CreditCard className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <Wallet className="h-4 w-4 text-green-600" />
-                        )}
-                        <span className="font-medium text-sm">{method.name}</span>
-                      </div>
-                      <Badge variant={method.type === "bank" ? "default" : "secondary"} className="text-xs">
-                        {method.type === "bank" ? "Bank" : "E-Wallet"}
-                      </Badge>
+                    <div className="flex items-center gap-3 mb-2">
+                      {method.type === "bank" ? (
+                        <CreditCard className="h-4 w-4 text-gray-600" />
+                      ) : (
+                        <Wallet className="h-4 w-4 text-gray-600" />
+                      )}
+                      <span className="font-medium text-sm">{method.name}</span>
                     </div>
                     
                     {method.account_number && (
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs">
-                        <div>
-                          <p className="text-gray-600">{method.type === "bank" ? "Account" : "Phone"}</p>
-                          <p className="font-mono font-semibold">
-                            {formatAccountNumber(method.account_number, method.type)}
-                          </p>
-                        </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-mono">
+                          {formatAccountNumber(method.account_number, method.type)}
+                        </span>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => method.account_number && copyToClipboard(method.account_number, `${method.id}-number`)}
-                          className="h-6 w-6 p-0"
+                          onClick={() => copyToClipboard(method.account_number!, `${method.id}-quick`)}
+                          className="h-6 px-2"
                         >
-                          {copiedField === `${method.id}-number` ? (
+                          {copiedField === `${method.id}-quick` ? (
                             <Check className="h-3 w-3" />
                           ) : (
                             <Copy className="h-3 w-3" />
@@ -169,7 +172,7 @@ export function OrderPaymentInfo({ orderId, orderTotal, orderStatus }: OrderPaym
               ) : (
                 <p className="text-sm text-orange-700">No payment methods available.</p>
               )}
-              
+
               {paymentMethods.length > 2 && (
                 <Link href={`/checkout/payment?order=${orderId}&total=${orderTotal}`}>
                   <Button variant="outline" size="sm" className="w-full bg-white">

@@ -1,11 +1,13 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart } from "lucide-react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Plus, Eye } from "lucide-react"
 import Image from "next/image"
 import { useCart } from "@/hooks/use-cart"
 import { useCurrency } from "@/contexts/currency-context"
+import { WhatsAppProductSupport } from "@/components/whatsapp-support"
 
 interface Product {
   id: string
@@ -16,8 +18,8 @@ interface Product {
   price: string
   description: string | null
   image_url: string | null
+  download_url: string | null
   is_active: boolean
-  created_at: string
 }
 
 interface ProductGridProps {
@@ -38,68 +40,95 @@ export function ProductGrid({ products }: ProductGridProps) {
     })
   }
 
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+        <p className="text-gray-500">Check back later for new ebooks!</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-black mb-2">Books</h2>
-        <p className="text-gray-600 text-sm">{products.length} available</p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        {products.map((product) => (
-          <Card key={product.id} className="border-0 shadow-none bg-white">
-            <CardContent className="p-0">
-              <div className="flex gap-4">
-                <div className="w-20 h-28 flex-shrink-0">
-                  <div className="w-full h-full bg-gray-100 rounded overflow-hidden">
-                    <Image
-                      src={product.image_url || "/placeholder.svg?height=112&width=80&query=book cover"}
-                      alt={product.title}
-                      width={80}
-                      height={112}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-black text-sm leading-tight mb-1 line-clamp-2">
-                    {product.title}
-                  </h3>
-
-                  <p className="text-gray-600 text-xs mb-2">by {product.author}</p>
-
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs text-gray-500">{product.publisher}</span>
-                    <span className="text-xs text-gray-500">{product.year}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-black text-lg">
-                      {formatPrice(product.price)}
-                    </span>
-                    
-                    <Button 
-                      size="sm" 
-                      className="bg-black text-white hover:bg-gray-800 h-8 px-3"
-                      onClick={() => handleAddToCart(product)}
-                    >
-                      <ShoppingCart className="h-3 w-3 mr-1" />
-                      Add
-                    </Button>
-                  </div>
-                </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {products.map((product) => (
+        <Card key={product.id} className="flex flex-col hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="p-4">
+            <div className="aspect-[3/4] relative mb-4 bg-gray-100 rounded-lg overflow-hidden">
+              <Image
+                src={product.image_url || "/placeholder.svg?height=300&width=225&query=book cover"}
+                alt={product.title}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div className="space-y-2">
+              <CardTitle className="text-lg font-bold leading-tight line-clamp-2">
+                {product.title}
+              </CardTitle>
+              <CardDescription className="text-sm text-gray-600">
+                by {product.author}
+              </CardDescription>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {product.publisher}
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {product.year}
+                </Badge>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+          </CardHeader>
 
-      {products.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No books available.</p>
-        </div>
-      )}
+          <CardContent className="px-4 pb-2 flex-1">
+            {product.description && (
+              <p className="text-sm text-gray-600 line-clamp-3 mb-4">
+                {product.description}
+              </p>
+            )}
+            
+            {/* WhatsApp Product Support */}
+            <div className="mb-4">
+              <WhatsAppProductSupport 
+                productTitle={product.title}
+                className="justify-center"
+              />
+            </div>
+          </CardContent>
+
+          <CardFooter className="p-4 pt-2 mt-auto">
+            <div className="w-full space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-black text-lg">
+                  {formatPrice(product.price)}
+                </span>
+                <Badge variant="default" className="bg-green-100 text-green-800">
+                  Digital
+                </Badge>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleAddToCart(product)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  size="sm"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add to Cart
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="px-3"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardFooter>
+        </Card>
+      ))}
     </div>
   )
 }

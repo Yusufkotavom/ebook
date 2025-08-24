@@ -3,6 +3,7 @@ import { HeroSection } from "@/components/hero-section"
 import { ProductSearch } from "@/components/product-search"
 import { ProductGrid } from "@/components/product-grid"
 import { FloatingCart } from "@/components/floating-cart"
+import { WhatsAppFloatingButton } from "@/components/whatsapp-support"
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -28,6 +29,12 @@ export default async function HomePage() {
       </main>
 
       <FloatingCart />
+      
+      {/* WhatsApp Support for general questions */}
+      <WhatsAppFloatingButton 
+        type="general" 
+        position="bottom-left"
+      />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ButtonSpinner, CardLoader } from "@/components/ui/spinner"
 import { useCart } from "@/hooks/use-cart"
 import { useCurrency } from "@/contexts/currency-context"
 import { useState, useEffect } from "react"
@@ -215,12 +216,25 @@ export default function CheckoutPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-48 mb-8"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-96 bg-gray-200 rounded"></div>
-              <div className="h-96 bg-gray-200 rounded"></div>
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Card>
+              <CardHeader>
+                <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-16"></div>
+              </CardHeader>
+              <CardContent>
+                <CardLoader rows={5} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <div className="h-6 bg-gray-200 rounded w-40 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-64"></div>
+              </CardHeader>
+              <CardContent>
+                <CardLoader rows={8} />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -313,6 +327,7 @@ export default function CheckoutPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
+                      disabled={isLoading}
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       An account will be created automatically if you don't have one
@@ -330,6 +345,7 @@ export default function CheckoutPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Your full name"
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -342,6 +358,7 @@ export default function CheckoutPage() {
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
                     placeholder="+62812345678"
+                    disabled={isLoading}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Optional - for order notifications and support
@@ -359,6 +376,7 @@ export default function CheckoutPage() {
                 {error && <p className="text-sm text-red-500">{error}</p>}
 
                 <Button type="submit" className="w-full" size="lg" disabled={isLoading || isCheckingAuth}>
+                  {isLoading && <ButtonSpinner />}
                   {isLoading ? "Processing..." : "Place Order"}
                 </Button>
 
@@ -371,6 +389,7 @@ export default function CheckoutPage() {
                         className="p-0 h-auto text-blue-600 hover:text-blue-800"
                         onClick={() => router.push('/auth/login')}
                         type="button"
+                        disabled={isLoading}
                       >
                         Sign in
                       </Button>
