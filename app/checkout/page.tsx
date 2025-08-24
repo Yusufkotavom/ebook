@@ -14,13 +14,21 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import type { User } from "@supabase/supabase-js"
 
+interface UserProfile {
+  full_name?: string
+  whatsapp_number?: string
+}
+
 export default function CheckoutPage() {
   const { state, clearCart } = useCart()
   const { formatPrice } = useCurrency()
   const [email, setEmail] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [whatsappNumber, setWhatsappNumber] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const router = useRouter()
 
@@ -33,6 +41,19 @@ export default function CheckoutPage() {
       if (currentUser) {
         setUser(currentUser)
         setEmail(currentUser.email || "")
+        
+        // Fetch user profile data
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, whatsapp_number")
+          .eq("id", currentUser.id)
+          .single()
+          
+        if (profile) {
+          setUserProfile(profile)
+          setFullName(profile.full_name || "")
+          setWhatsappNumber(profile.whatsapp_number || "")
+        }
       }
       setIsCheckingAuth(false)
     }
@@ -44,6 +65,13 @@ export default function CheckoutPage() {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+
+    // Validate required fields
+    if (!fullName.trim()) {
+      setError("Full name is required")
+      setIsLoading(false)
+      return
+    }
 
     const supabase = createClient()
 
@@ -63,6 +91,8 @@ export default function CheckoutPage() {
             emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
             data: {
               email_confirm: true, // Skip email verification for local testing
+              full_name: fullName.trim(),
+              whatsapp_number: whatsappNumber.trim()
             },
           },
         })
@@ -80,6 +110,35 @@ export default function CheckoutPage() {
         } else {
           userId = signUpData.user?.id
           console.log("[v0] New user created:", userId)
+          
+          // Create/update profile for new user
+          if (userId) {
+            const { error: profileError } = await supabase
+              .from("profiles")
+              .upsert({
+                id: userId,
+                email: email,
+                full_name: fullName.trim(),
+                whatsapp_number: whatsappNumber.trim()
+              })
+            
+            if (profileError) {
+              console.error("Profile creation error:", profileError)
+            }
+          }
+        }
+      } else {
+        // Update existing user profile if data has changed
+        const { error: profileUpdateError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: fullName.trim(),
+            whatsapp_number: whatsappNumber.trim()
+          })
+          .eq("id", userId)
+          
+        if (profileUpdateError) {
+          console.error("Profile update error:", profileUpdateError)
         }
       }
 
@@ -91,6 +150,8 @@ export default function CheckoutPage() {
         status: "pending" as const,
         payment_method: "manual",
         guest_email: !userId ? email : null, // Store guest email if no user ID
+        guest_name: !userId ? fullName.trim() : null, // Store guest name if no user ID
+        guest_whatsapp: !userId ? whatsappNumber.trim() : null, // Store guest WhatsApp if no user ID
       }
 
       const { data: createdOrder, error: orderError } = await supabase
@@ -218,14 +279,14 @@ export default function CheckoutPage() {
               <CardDescription>
                 {user 
                   ? "Your download links will be sent to your registered email" 
-                  : "We&apos;ll send your download links to this email"
+                  : "We'll send your download links to this email"
                 }
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCheckout} className="space-y-4">
-                {user ? (
-                  /* Logged in user */
+                {user && (
+                  /* Logged in user - show email info */
                   <div className="bg-green-50 p-4 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -239,8 +300,10 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  /* Guest user */
+                )}
+
+                {!user && (
+                  /* Guest user - email field */
                   <div>
                     <Label htmlFor="email">Email Address *</Label>
                     <Input
@@ -252,15 +315,43 @@ export default function CheckoutPage() {
                       placeholder="your@email.com"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      An account will be created automatically if you don&apos;t have one
+                      An account will be created automatically if you don't have one
                     </p>
                   </div>
                 )}
 
+                {/* Full Name - always required */}
+                <div>
+                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your full name"
+                  />
+                </div>
+
+                {/* WhatsApp Number - optional */}
+                <div>
+                  <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                  <Input
+                    id="whatsappNumber"
+                    type="tel"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    placeholder="+62812345678"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Optional - for order notifications and support
+                  </p>
+                </div>
+
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <h4 className="font-medium text-yellow-800 mb-2">Payment Method</h4>
                   <p className="text-sm text-yellow-700">
-                    Manual payment processing. After placing your order, you&apos;ll receive payment instructions via email.
+                    Manual payment processing. After placing your order, you'll receive payment instructions via email.
                     Your download links will be sent once payment is confirmed.
                   </p>
                 </div>

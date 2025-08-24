@@ -13,6 +13,8 @@ import { useState, useEffect } from "react"
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [whatsappNumber, setWhatsappNumber] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -50,14 +52,41 @@ export default function SignUpPage() {
       return
     }
 
+    if (fullName.trim().length < 2) {
+      setError("Full name must be at least 2 characters")
+      setIsLoading(false)
+      return
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            whatsapp_number: whatsappNumber.trim()
+          }
+        }
       })
       if (error) throw error
 
       if (data.user) {
+        // Create/update profile with additional info
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: fullName.trim(),
+            whatsapp_number: whatsappNumber.trim()
+          })
+
+        if (profileError) {
+          console.error("Profile creation error:", profileError)
+          // Don't fail the signup if profile creation fails
+        }
+
         router.push("/dashboard")
       }
     } catch (error: unknown) {
@@ -97,7 +126,18 @@ export default function SignUpPage() {
             <form onSubmit={handleSignUp}>
               <div className="flex flex-col gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Your full name"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -108,7 +148,18 @@ export default function SignUpPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                  <Input
+                    id="whatsappNumber"
+                    type="tel"
+                    placeholder="+62812345678"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500">Optional - for order notifications</p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Password *</Label>
                   <Input
                     id="password"
                     type="password"
@@ -118,7 +169,7 @@ export default function SignUpPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Label htmlFor="confirm-password">Confirm Password *</Label>
                   <Input
                     id="confirm-password"
                     type="password"
