@@ -76,15 +76,53 @@ export async function POST(request: NextRequest) {
       
       // Check if order contains subscriptions and activate them
       try {
-        const { error: activationError } = await supabase.rpc(
-          'activate_subscription_from_order', 
-          { order_uuid: orderId }
-        )
-        
-        if (activationError) {
-          console.error("Error activating subscriptions:", activationError)
+        // First, get subscription items from the order
+        const { data: subscriptionItems, error: itemsError } = await supabase
+          .from("order_items")
+          .select("subscription_package_id")
+          .eq("order_id", orderId)
+          .eq("item_type", "subscription")
+          .not("subscription_package_id", "is", null)
+
+        if (itemsError) {
+          console.error("Error fetching subscription items:", itemsError)
+        } else if (subscriptionItems && subscriptionItems.length > 0) {
+          console.log(`Found ${subscriptionItems.length} subscription items to activate`)
+          
+          // Get order details to find the user
+          const { data: orderData, error: orderError } = await supabase
+            .from("orders")
+            .select("user_id")
+            .eq("id", orderId)
+            .single()
+
+          if (orderError || !orderData?.user_id) {
+            console.error("Error fetching order user:", orderError)
+          } else {
+            // Activate each subscription
+            for (const item of subscriptionItems) {
+              try {
+                const { error: activationError } = await supabase.rpc(
+                  'activate_subscription',
+                  {
+                    user_uuid: orderData.user_id,
+                    package_uuid: item.subscription_package_id,
+                    order_uuid: orderId
+                  }
+                )
+
+                if (activationError) {
+                  console.error(`Error activating subscription ${item.subscription_package_id}:`, activationError)
+                } else {
+                  console.log(`✅ Subscription ${item.subscription_package_id} activated for user ${orderData.user_id}`)
+                }
+              } catch (error) {
+                console.error(`Failed to activate subscription ${item.subscription_package_id}:`, error)
+              }
+            }
+          }
         } else {
-          console.log(`✅ Subscriptions activated for order ${orderId}`)
+          console.log("No subscription items found in order")
         }
       } catch (subError) {
         console.error("Subscription activation failed:", subError)
