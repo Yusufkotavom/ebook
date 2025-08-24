@@ -16,8 +16,9 @@ export default async function NotificationsPage() {
       type,
       recipient,
       message,
+      subject,
       sent_at,
-      orders(id)
+      order_id
     `)
     .order("sent_at", { ascending: false })
     .limit(50)
