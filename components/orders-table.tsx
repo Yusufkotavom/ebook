@@ -107,7 +107,21 @@ export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
           {orders.map((order) => (
             <TableRow key={order.id}>
               <TableCell className="font-mono text-sm">{order.id.slice(0, 8)}...</TableCell>
-              <TableCell>{order.profiles?.email || order.guest_email || "N/A"}</TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  <div className="font-medium">
+                    {order.profiles?.full_name || order.guest_name || "Guest User"}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {order.profiles?.email || order.guest_email || "No email"}
+                  </div>
+                  {(order.profiles?.whatsapp_number || order.guest_whatsapp) && (
+                    <div className="text-xs text-gray-500">
+                      WA: {order.profiles?.whatsapp_number || order.guest_whatsapp}
+                    </div>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>
                 <div className="space-y-1">
                   {order.order_items.map((item, index) => (
