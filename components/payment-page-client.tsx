@@ -63,7 +63,11 @@ export function PaymentPageClient() {
               order_items(
                 quantity,
                 price,
-                products(title, author)
+                item_type,
+                product_id,
+                subscription_package_id,
+                products(title, author),
+                subscription_packages(name, duration_days)
               )
             `)
             .eq("id", orderId)
@@ -270,9 +274,24 @@ export function PaymentPageClient() {
                     {orderData.order_items.map((item: any, index: number) => (
                       <div key={index} className="flex justify-between text-sm">
                         <div>
-                          <div className="font-medium">{item.products.title}</div>
-                          <div className="text-gray-500">by {item.products.author}</div>
-                          <div className="text-xs text-gray-400">Qty: {item.quantity}</div>
+                          {item.item_type === 'subscription' ? (
+                            <>
+                              <div className="font-medium">{item.subscription_packages?.name || 'Subscription Package'}</div>
+                              <div className="text-gray-500">
+                                {item.subscription_packages?.duration_days 
+                                  ? `${item.subscription_packages.duration_days} days access`
+                                  : 'Lifetime access'
+                                }
+                              </div>
+                              <div className="text-xs text-gray-400">Qty: {item.quantity}</div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="font-medium">{item.products?.title || 'Product'}</div>
+                              <div className="text-gray-500">by {item.products?.author || 'Unknown'}</div>
+                              <div className="text-xs text-gray-400">Qty: {item.quantity}</div>
+                            </>
+                          )}
                         </div>
                         <div className="font-medium">
                           {formatPrice(item.price * item.quantity)}
