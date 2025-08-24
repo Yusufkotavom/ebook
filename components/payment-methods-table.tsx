@@ -6,7 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Edit, Trash2, Eye, EyeOff, CreditCard, Wallet } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { createClient } from "@/lib/client"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
@@ -41,15 +40,16 @@ export function PaymentMethodsTable({ paymentMethods }: PaymentMethodsTableProps
 
   const handleDeleteMethod = async (methodId: string) => {
     setIsDeleting(true)
-    const supabase = createClient()
 
     try {
-      const { error } = await supabase
-        .from("payment_methods")
-        .delete()
-        .eq("id", methodId)
+      const response = await fetch(`/api/payment-methods/${methodId}`, {
+        method: "DELETE",
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete payment method")
+      }
 
       router.refresh()
       setDeleteMethodId(null)
@@ -62,15 +62,20 @@ export function PaymentMethodsTable({ paymentMethods }: PaymentMethodsTableProps
 
   const handleToggleStatus = async (methodId: string, currentStatus: boolean) => {
     setIsToggling(methodId)
-    const supabase = createClient()
 
     try {
-      const { error } = await supabase
-        .from("payment_methods")
-        .update({ is_active: !currentStatus })
-        .eq("id", methodId)
+      const response = await fetch(`/api/payment-methods/${methodId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ is_active: !currentStatus }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update payment method status")
+      }
 
       router.refresh()
     } catch (error) {

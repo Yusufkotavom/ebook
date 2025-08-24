@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState } from "react"
-import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -55,24 +54,24 @@ export function PaymentMethodForm({ paymentMethod }: PaymentMethodFormProps) {
     setIsLoading(true)
     setError(null)
 
-    const supabase = createClient()
-
     try {
-      if (paymentMethod?.id) {
-        // Update existing payment method
-        const { error } = await supabase
-          .from("payment_methods")
-          .update(formData)
-          .eq("id", paymentMethod.id)
+      const url = paymentMethod?.id 
+        ? `/api/payment-methods/${paymentMethod.id}`
+        : "/api/payment-methods"
+      
+      const method = paymentMethod?.id ? "PUT" : "POST"
 
-        if (error) throw error
-      } else {
-        // Create new payment method
-        const { error } = await supabase
-          .from("payment_methods")
-          .insert([formData])
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
 
-        if (error) throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to save payment method")
       }
 
       router.push("/admin/settings/payment-methods")

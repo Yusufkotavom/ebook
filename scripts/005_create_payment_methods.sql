@@ -21,7 +21,14 @@ CREATE POLICY "Allow read access for authenticated users" ON public.payment_meth
   TO authenticated
   USING (is_active = true);
 
--- Allow all operations for service role (admin)
+-- Allow all operations for authenticated users (admin functionality)
+CREATE POLICY "Allow all operations for authenticated users" ON public.payment_methods
+  FOR ALL
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Allow all operations for service role
 CREATE POLICY "Allow all operations for service role" ON public.payment_methods
   FOR ALL
   TO service_role
