@@ -125,7 +125,7 @@ export default function CheckoutPage() {
 
       console.log("[v0] Checkout completed successfully")
       clearCart()
-      router.push(`/order-confirmation?order=${createdOrder.id}&email=${encodeURIComponent(email)}`)
+      router.push(`/checkout/payment?order=${createdOrder.id}&total=${state.total}`)
     } catch (error: unknown) {
       console.log("[v0] Checkout error:", error)
       setError(error instanceof Error ? error.message : "An error occurred during checkout")

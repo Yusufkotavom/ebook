@@ -48,6 +48,25 @@ export default async function AdminSettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Payment Methods</CardTitle>
+            <CardDescription>Configure bank accounts and e-wallets for customer payments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Manage the payment options available to your customers, including bank transfers and e-wallet providers.
+              </p>
+              <Button asChild>
+                <Link href="/admin/settings/payment-methods">
+                  Manage Payment Methods
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Store Information</CardTitle>
             <CardDescription>Basic information about your ebook store</CardDescription>
           </CardHeader>
