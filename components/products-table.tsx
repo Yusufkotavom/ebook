@@ -6,6 +6,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Edit, Trash2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useState } from "react"
+import { createClient } from "@/lib/client"
+import { useRouter } from "next/navigation"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface Product {
   id: string
@@ -24,7 +35,34 @@ interface ProductsTableProps {
 }
 
 export function ProductsTable({ products }: ProductsTableProps) {
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter()
+
+  const handleDeleteProduct = async (productId: string) => {
+    setIsDeleting(true)
+    const supabase = createClient()
+
+    try {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", productId)
+
+      if (error) throw error
+
+      // Refresh the page to update the products list
+      router.refresh()
+      setDeleteProductId(null)
+    } catch (error) {
+      console.error("Error deleting product:", error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
+    <>
     <Table>
       <TableHeader>
         <TableRow>
@@ -71,14 +109,46 @@ export function ProductsTable({ products }: ProductsTableProps) {
                     <Edit className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setDeleteProductId(product.id)}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </TableCell>
           </TableRow>
-        ))}
-      </TableBody>
+                  ))}
+        </TableBody>
     </Table>
+
+    <Dialog open={!!deleteProductId} onOpenChange={() => setDeleteProductId(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Product</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete this product? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setDeleteProductId(null)}
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => deleteProductId && handleDeleteProduct(deleteProductId)}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

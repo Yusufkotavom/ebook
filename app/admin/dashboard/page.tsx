@@ -93,18 +93,19 @@ export default async function AdminDashboardPage() {
         </Card>
       </div>
 
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg sm:text-xl text-slate-900">Recent Orders</CardTitle>
-              <CardDescription className="text-slate-600">Latest customer purchases and their status</CardDescription>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-6 lg:mb-8">
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg sm:text-xl text-slate-900">Recent Orders</CardTitle>
+                <CardDescription className="text-slate-600">Latest customer purchases and their status</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/admin/orders">View All Orders</Link>
+              </Button>
             </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/orders">View All Orders</Link>
-            </Button>
-          </div>
-        </CardHeader>
+          </CardHeader>
         <CardContent className="p-4 sm:p-6">
           {recentOrders && recentOrders.length > 0 ? (
             <div className="space-y-4">
@@ -162,6 +163,39 @@ export default async function AdminDashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg sm:text-xl text-slate-900">Product Management</CardTitle>
+              <CardDescription className="text-slate-600">Quick actions for your product catalog</CardDescription>
+            </div>
+            <Button asChild>
+              <Link href="/admin/products/add">Add New Product</Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Button variant="outline" className="h-20 flex flex-col items-center justify-center" asChild>
+              <Link href="/admin/products">
+                <Package className="h-6 w-6 mb-2" />
+                <span>Manage Products</span>
+                <span className="text-xs text-muted-foreground">{totalProducts || 0} total</span>
+              </Link>
+            </Button>
+            <Button variant="outline" className="h-20 flex flex-col items-center justify-center" asChild>
+              <Link href="/admin/products/add">
+                <Package className="h-6 w-6 mb-2" />
+                <span>Add Product</span>
+                <span className="text-xs text-muted-foreground">Create new listing</span>
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
     </div>
   )
 }
