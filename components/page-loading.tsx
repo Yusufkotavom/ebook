@@ -43,7 +43,7 @@ export function PageLoading({
   const styles = getVariantStyles()
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center ${styles.background}`}>
+    <div className={`fixed inset-0 z-[60] flex items-center justify-center ${styles.background}`}>
       <div className="text-center">
         {/* Animated Logo/Icon */}
         <div className="mb-6 relative">
