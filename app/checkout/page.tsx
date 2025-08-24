@@ -24,6 +24,8 @@ export default function CheckoutPage() {
   const { state, clearCart } = useCart()
   const { formatPrice } = useCurrency()
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [fullName, setFullName] = useState("")
   const [whatsappNumber, setWhatsappNumber] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -74,6 +76,33 @@ export default function CheckoutPage() {
       return
     }
 
+    if (!email.trim()) {
+      setError("Email is required")
+      setIsLoading(false)
+      return
+    }
+
+    // For guest users, validate password
+    if (!user) {
+      if (!password.trim()) {
+        setError("Password is required")
+        setIsLoading(false)
+        return
+      }
+
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters")
+        setIsLoading(false)
+        return
+      }
+
+      if (password !== confirmPassword) {
+        setError("Passwords do not match")
+        setIsLoading(false)
+        return
+      }
+    }
+
     const supabase = createClient()
 
     try {
@@ -82,16 +111,13 @@ export default function CheckoutPage() {
       let userId = user?.id
 
       if (!userId) {
-        console.log("[v0] Creating new user for checkout")
-        const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
+        console.log("[v0] Creating new user account during checkout")
 
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password: tempPassword,
+          email: email.trim(),
+          password: password,
           options: {
-            emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
             data: {
-              email_confirm: true, // Skip email verification for local testing
               full_name: fullName.trim(),
               whatsapp_number: whatsappNumber.trim()
             },
@@ -100,17 +126,18 @@ export default function CheckoutPage() {
 
         if (signUpError) {
           console.log("[v0] Signup error:", signUpError)
-          // If user already exists, try to sign them in with a different approach
-          if (signUpError.message.includes("already registered")) {
-            // For existing users, we'll create the order without authentication
-            // This is a simplified approach for manual payment processing
-            console.log("[v0] User exists, proceeding with guest checkout")
+          
+          // If user already exists, try to sign them in
+          if (signUpError.message.includes("already registered") || signUpError.message.includes("already been registered")) {
+            setError("An account with this email already exists. Please sign in first or use a different email.")
+            setIsLoading(false)
+            return
           } else {
             throw signUpError
           }
         } else {
           userId = signUpData.user?.id
-          console.log("[v0] New user created:", userId)
+          console.log("[v0] New user created and signed in:", userId)
           
           // Create/update profile for new user
           if (userId) {
@@ -118,7 +145,7 @@ export default function CheckoutPage() {
               .from("profiles")
               .upsert({
                 id: userId,
-                email: email,
+                email: email.trim(),
                 full_name: fullName.trim(),
                 whatsapp_number: whatsappNumber.trim()
               })
@@ -146,13 +173,10 @@ export default function CheckoutPage() {
       console.log("[v0] Creating order")
 
       const orderData = {
-        user_id: userId || null, // Allow null for guest checkout
+        user_id: userId,
         total_amount: state.total,
         status: "pending" as const,
         payment_method: "manual",
-        guest_email: !userId ? email : null, // Store guest email if no user ID
-        guest_name: !userId ? fullName.trim() : null, // Store guest name if no user ID
-        guest_whatsapp: !userId ? whatsappNumber.trim() : null, // Store guest WhatsApp if no user ID
       }
 
       const { data: createdOrder, error: orderError } = await supabase
@@ -289,11 +313,13 @@ export default function CheckoutPage() {
           {/* Checkout Form */}
           <Card>
             <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
+              <CardTitle>
+                {user ? "Contact Information" : "Create Account & Checkout"}
+              </CardTitle>
               <CardDescription>
                 {user 
                   ? "Your download links will be sent to your registered email" 
-                  : "We'll send your download links to this email"
+                  : "Create your account and complete your purchase in one step"
                 }
               </CardDescription>
             </CardHeader>
@@ -317,22 +343,50 @@ export default function CheckoutPage() {
                 )}
 
                 {!user && (
-                  /* Guest user - email field */
-                  <div>
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      disabled={isLoading}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      An account will be created automatically if you don't have one
-                    </p>
-                  </div>
+                  /* Guest user - account creation fields */
+                  <>
+                    <div>
+                      <Label htmlFor="email">Email Address *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        disabled={isLoading}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        This will be your account email
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="password">Create Password *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter your password"
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </>
                 )}
 
                 {/* Full Name - always required */}
@@ -368,16 +422,31 @@ export default function CheckoutPage() {
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <h4 className="font-medium text-yellow-800 mb-2">Payment Method</h4>
                   <p className="text-sm text-yellow-700">
-                    Manual payment processing. After placing your order, you'll receive payment instructions via email.
+                    Manual payment processing. After placing your order, you'll receive payment instructions.
                     Your download links will be sent once payment is confirmed.
                   </p>
                 </div>
+
+                {!user && (
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-blue-800 mb-2">Account Benefits</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• Track your orders and download history</li>
+                      <li>• Faster checkout for future purchases</li>
+                      <li>• Access your ebooks anytime</li>
+                      <li>• Receive order updates and support</li>
+                    </ul>
+                  </div>
+                )}
 
                 {error && <p className="text-sm text-red-500">{error}</p>}
 
                 <Button type="submit" className="w-full" size="lg" disabled={isLoading || isCheckingAuth}>
                   {isLoading && <ButtonSpinner />}
-                  {isLoading ? "Processing..." : "Place Order"}
+                  {isLoading 
+                    ? (user ? "Processing..." : "Creating Account & Order...") 
+                    : (user ? "Place Order" : "Create Account & Place Order")
+                  }
                 </Button>
 
                 {!user && (
@@ -391,7 +460,7 @@ export default function CheckoutPage() {
                         type="button"
                         disabled={isLoading}
                       >
-                        Sign in
+                        Sign in instead
                       </Button>
                     </p>
                   </div>

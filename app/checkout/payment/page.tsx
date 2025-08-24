@@ -17,6 +17,7 @@ export default async function PaymentPage({ searchParams }: PaymentPageProps) {
     notFound()
   }
 
+  // Use server client to fetch payment methods (should work with public access policy)
   const supabase = await createClient()
 
   const { data: paymentMethods, error } = await supabase
@@ -58,11 +59,20 @@ export default async function PaymentPage({ searchParams }: PaymentPageProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <PaymentMethodsDisplay
-                  paymentMethods={paymentMethods || []}
-                  orderTotal={orderTotal}
-                  orderId={orderId}
-                />
+                {paymentMethods && paymentMethods.length > 0 ? (
+                  <PaymentMethodsDisplay
+                    paymentMethods={paymentMethods}
+                    orderTotal={orderTotal}
+                    orderId={orderId}
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">Payment methods are currently unavailable.</p>
+                    <p className="text-sm text-gray-400">
+                      Please contact support for assistance with your payment.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -94,11 +104,18 @@ export default async function PaymentPage({ searchParams }: PaymentPageProps) {
                 <p className="text-sm text-blue-700 mb-3">
                   Having trouble with payment? Our support team is here to help!
                 </p>
-                <Link href="/dashboard/orders">
-                  <Button variant="outline" size="sm" className="w-full">
-                    View My Orders
-                  </Button>
-                </Link>
+                <div className="space-y-2">
+                  <Link href="/dashboard/orders">
+                    <Button variant="outline" size="sm" className="w-full">
+                      View My Orders
+                    </Button>
+                  </Link>
+                  <Link href="https://wa.me/6285799520350?text=Hello!%20I%20need%20help%20with%20payment%20for%20my%20order." target="_blank">
+                    <Button variant="outline" size="sm" className="w-full border-green-200 text-green-700 hover:bg-green-50">
+                      WhatsApp Support
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           </div>
