@@ -37,7 +37,7 @@ export function DashboardOrdersList({ orders }: DashboardOrdersListProps) {
       <Card>
         <CardContent className="p-8 text-center">
           <p className="text-gray-500">No orders found.</p>
-          <Link href="/products">
+          <Link href="/books">
             <Button className="mt-4">
               Browse Products
             </Button>

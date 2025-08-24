@@ -110,7 +110,7 @@ export function CheckoutCart({ onSelectedItemsChange }: CheckoutCartProps) {
         <CardContent className="text-center py-8">
           <ShoppingCart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 mb-4">Your cart is empty</p>
-          <Button onClick={() => window.location.href = "/products"}>
+          <Button onClick={() => window.location.href = "/books"}>
             Browse Books
           </Button>
         </CardContent>
