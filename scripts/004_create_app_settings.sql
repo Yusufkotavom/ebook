@@ -19,7 +19,7 @@ CREATE POLICY "Allow all operations for authenticated users" ON public.app_setti
 
 -- Insert default currency setting
 INSERT INTO public.app_settings (key, value, description) 
-VALUES ('currency', 'USD', 'Default currency for the store')
+VALUES ('currency', 'IDR', 'Default currency for the store')
 ON CONFLICT (key) DO NOTHING;
 
 -- Add indexes for better performance

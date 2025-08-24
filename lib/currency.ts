@@ -218,7 +218,7 @@ export const CURRENCIES: Record<string, Currency> = {
   },
 }
 
-export function formatPrice(amount: number | string, currencyCode: string = "USD"): string {
+export function formatPrice(amount: number | string, currencyCode: string = "IDR"): string {
   const currency = CURRENCIES[currencyCode] || CURRENCIES.USD
   const numericAmount = typeof amount === "string" ? parseFloat(amount) : amount
 

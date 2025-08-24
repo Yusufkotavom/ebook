@@ -15,7 +15,7 @@ export default async function AdminSettingsPage() {
     .eq("key", "currency")
     .single()
 
-  const currentCurrency = settings?.value || "USD"
+  const currentCurrency = settings?.value || "IDR"
 
   return (
     <div className="p-6">

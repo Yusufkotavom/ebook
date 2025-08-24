@@ -10,10 +10,10 @@ export async function getCurrencyFromServer(): Promise<string> {
       .eq("key", "currency")
       .single()
 
-    return settings?.value || "USD"
+    return settings?.value || "IDR"
   } catch (error) {
     console.error("Failed to load currency from server:", error)
-    return "USD"
+    return "IDR"
   }
 }
 

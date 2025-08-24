@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/server"
+import { formatPriceServer } from "@/lib/currency-server"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
@@ -34,6 +35,9 @@ export async function POST(request: NextRequest) {
       .map((item) => `${item.products?.title} by ${item.products?.author}: ${item.products?.download_url}`)
       .join("\n")
 
+    // Format price using the current currency system
+    const formattedTotal = await formatPriceServer(order.total_amount)
+
     const message = `Payment Confirmed! 🎉
 
 Your order #${orderId.slice(0, 8)} has been processed successfully.
@@ -41,7 +45,7 @@ Your order #${orderId.slice(0, 8)} has been processed successfully.
 Download your ebooks:
 ${downloadLinks}
 
-Total: Rp ${Number.parseFloat(order.total_amount).toLocaleString('id-ID')}
+Total: ${formattedTotal}
 
 Thank you for your purchase!
 - Ebook Store Team`

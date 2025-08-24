@@ -16,7 +16,7 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 
 export function CurrencyProvider({ 
   children, 
-  initialCurrency = "USD" 
+  initialCurrency = "IDR" 
 }: { 
   children: React.ReactNode
   initialCurrency?: string 
@@ -101,7 +101,7 @@ export function useCurrency() {
 
 // Hook for components that need currency without the provider
 export function useCurrencyFromServer(serverCurrency?: string) {
-  const [currencyCode, setCurrencyCode] = useState(serverCurrency || "USD")
+  const [currencyCode, setCurrencyCode] = useState(serverCurrency || "IDR")
   
   useEffect(() => {
     if (serverCurrency) {
