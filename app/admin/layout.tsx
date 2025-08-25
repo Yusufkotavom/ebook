@@ -1,5 +1,6 @@
 import { AdminNavigation } from "@/components/admin-navigation"
 import { AdminPageLoading } from "@/components/page-loading"
+import { DevCompilationIndicator } from "@/components/compilation-detector"
 import { Suspense } from "react"
 
 export default function AdminLayout({
@@ -15,6 +16,7 @@ export default function AdminLayout({
           {children}
         </Suspense>
       </main>
+      <DevCompilationIndicator />
     </div>
   )
 }

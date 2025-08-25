@@ -265,6 +265,30 @@ export default function CheckoutPage() {
       setLoadingStep("Finalizing order...")
       console.log("[v0] Checkout completed successfully")
       
+      // Send order confirmation email
+      try {
+        setLoadingStep("Sending confirmation email...")
+        const emailResponse = await fetch("/api/notifications/order-created", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: createdOrder.id,
+            email: email.trim(),
+            customerName: fullName.trim(),
+            paymentMethod: "Manual Payment"
+          }),
+        })
+
+        if (emailResponse.ok) {
+          console.log("[v0] Order confirmation email sent successfully")
+        } else {
+          console.log("[v0] Failed to send order confirmation email")
+        }
+      } catch (emailError) {
+        console.log("[v0] Email error (non-blocking):", emailError)
+        // Email error shouldn't block checkout completion
+      }
+      
       // Remove only selected items from cart (keep unselected for future purchase)
       selectedItems.forEach(item => {
         removeFromCart(item.id)

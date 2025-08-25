@@ -92,24 +92,24 @@ export function OrderPaymentInfo({ orderId, orderTotal, orderStatus }: OrderPaym
   return (
     <Card className="border-orange-200 bg-orange-50">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-orange-600" />
             <CardTitle className="text-lg text-orange-800">Payment Required</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            <Badge variant="secondary" className="bg-orange-100 text-orange-800 self-start sm:self-auto">
               Pending Payment
             </Badge>
             <Link href={`/checkout/payment?order=${orderId}&total=${orderTotal}`}>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" className="w-full sm:w-auto">
                 <ExternalLink className="h-4 w-4 mr-1" />
                 View Details
               </Button>
             </Link>
           </div>
         </div>
-        <CardDescription className="text-orange-700">
+        <CardDescription className="text-orange-700 mt-2">
           Complete your payment to access your ebooks. Total amount: {formatPrice(orderTotal)}
         </CardDescription>
       </CardHeader>
@@ -137,38 +137,40 @@ export function OrderPaymentInfo({ orderId, orderTotal, orderStatus }: OrderPaym
           {isExpanded && (
             <div className="space-y-3 pt-3 border-t border-orange-200">
               {paymentMethods.length > 0 ? (
-                paymentMethods.slice(0, 2).map((method) => (
-                  <div key={method.id} className="p-3 bg-white rounded-lg border border-orange-200">
-                    <div className="flex items-center gap-3 mb-2">
-                      {method.type === "bank" ? (
-                        <CreditCard className="h-4 w-4 text-gray-600" />
-                      ) : (
-                        <Wallet className="h-4 w-4 text-gray-600" />
-                      )}
-                      <span className="font-medium text-sm">{method.name}</span>
-                    </div>
-                    
-                    {method.account_number && (
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-mono">
-                          {formatAccountNumber(method.account_number, method.type)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(method.account_number!, `${method.id}-quick`)}
-                          className="h-6 px-2"
-                        >
-                          {copiedField === `${method.id}-quick` ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {paymentMethods.slice(0, 2).map((method) => (
+                    <div key={method.id} className="p-3 bg-white rounded-lg border border-orange-200">
+                      <div className="flex items-center gap-3 mb-2">
+                        {method.type === "bank" ? (
+                          <CreditCard className="h-4 w-4 text-gray-600" />
+                        ) : (
+                          <Wallet className="h-4 w-4 text-gray-600" />
+                        )}
+                        <span className="font-medium text-sm">{method.name}</span>
                       </div>
-                    )}
-                  </div>
-                ))
+                      
+                      {method.account_number && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-mono break-all">
+                            {formatAccountNumber(method.account_number, method.type)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(method.account_number!, `${method.id}-quick`)}
+                            className="h-6 px-2 ml-2 flex-shrink-0"
+                          >
+                            {copiedField === `${method.id}-quick` ? (
+                              <Check className="h-3 w-3" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <p className="text-sm text-orange-700">No payment methods available.</p>
               )}

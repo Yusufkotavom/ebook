@@ -40,10 +40,10 @@ export default async function OrdersPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
-        <p className="text-gray-600">View and manage your ebook purchases</p>
+    <div className="p-4 sm:p-6">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Orders</h1>
+        <p className="text-gray-600 mt-1">View and manage your ebook purchases</p>
       </div>
 
       <DashboardOrdersList orders={orders || []} />

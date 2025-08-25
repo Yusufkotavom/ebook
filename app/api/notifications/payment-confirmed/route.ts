@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/server"
 import { formatPriceServer } from "@/lib/currency-server"
 import { type NextRequest, NextResponse } from "next/server"
-import emailService from "@/lib/email-service"
+import { EmailService } from "@/lib/email-service"
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +12,39 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
+
+    // Load email settings from database
+    const { data: allSettings, error: settingsError } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", [
+        "email_provider", "brevo_api_key", "smtp_host", "smtp_port", 
+        "smtp_user", "smtp_pass", "email_from_address", "email_from_name", "email_reply_to"
+      ])
+
+    if (settingsError) {
+      console.error("Error loading email settings:", settingsError)
+      return NextResponse.json({ error: "Failed to load email configuration" }, { status: 500 })
+    }
+
+    // Convert to key-value object
+    const emailConfig: any = {}
+    allSettings?.forEach(setting => {
+      emailConfig[setting.setting_key] = setting.setting_value
+    })
+
+    // Create email service instance with current settings
+    const emailService = new EmailService({
+      provider: emailConfig.email_provider as 'brevo_api' | 'brevo_smtp',
+      brevo_api_key: emailConfig.brevo_api_key,
+      smtp_host: emailConfig.smtp_host,
+      smtp_port: parseInt(emailConfig.smtp_port || '587'),
+      smtp_user: emailConfig.smtp_user,
+      smtp_pass: emailConfig.smtp_pass,
+      from_address: emailConfig.email_from_address || 'noreply@yourdomain.com',
+      from_name: emailConfig.email_from_name || 'Ebook Store',
+      reply_to: emailConfig.email_reply_to,
+    })
 
     // Get order details with download links
     const { data: order, error: orderError } = await supabase

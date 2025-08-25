@@ -305,6 +305,128 @@ class EmailService {
     }
   }
 
+  // Payment reminder email template
+  generatePaymentReminderEmail(orderData: OrderEmailData & { orderDate: string }): EmailData {
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Payment Reminder</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background-color: #fffbeb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .order-details { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+          .total { font-weight: bold; font-size: 1.2em; color: #f59e0b; padding-top: 15px; border-top: 2px solid #f59e0b; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 0.9em; }
+          .button { display: inline-block; background-color: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .urgent { background-color: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #f59e0b; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>⏰ Payment Reminder</h1>
+          <p>Complete your order to get your ebooks!</p>
+        </div>
+        
+        <div class="content">
+          <h2>Hello ${orderData.customerName}!</h2>
+          <p>We noticed you haven't completed your payment yet. Your order is waiting for you!</p>
+          
+          <div class="urgent">
+            <h3>📅 Order Details</h3>
+            <p><strong>Order Date:</strong> ${orderData.orderDate}</p>
+            <p><strong>Order ID:</strong> #${orderData.orderId}</p>
+          </div>
+          
+          <div class="order-details">
+            <h3>📚 Your Order Items</h3>
+            
+            <div style="margin: 20px 0;">
+              ${orderData.orderItems.map(item => `
+                <div class="item">
+                  <div>
+                    <strong>${item.title}</strong><br>
+                    <small>by ${item.author}</small><br>
+                    <small>Quantity: ${item.quantity}</small>
+                  </div>
+                  <div style="text-align: right;">
+                    <strong>${item.price}</strong>
+                  </div>
+                </div>
+              `).join('')}
+              
+              <div class="total">
+                Total: ${orderData.orderTotal}
+              </div>
+            </div>
+          </div>
+          
+          <div style="background-color: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h4>💳 Complete Your Payment</h4>
+            <p>To get your ebooks, please complete your payment using any of our payment methods:</p>
+            <ul>
+              <li>Bank Transfer (BCA, Mandiri, BNI)</li>
+              <li>E-Wallet (OVO, DANA, GoPay)</li>
+              <li>QRIS</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com'}/checkout/payment?order=${orderData.orderId}" class="button">
+              Complete Payment Now
+            </a>
+          </div>
+          
+          <div class="footer">
+            <p>Need help? Contact us via WhatsApp: +6285799520350</p>
+            <p>Thank you for choosing our Ebook Store!</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+
+    const textContent = `
+      Payment Reminder - Ebook Store
+      
+      Hello ${orderData.customerName}!
+      
+      We noticed you haven't completed your payment yet. Your order is waiting for you!
+      
+      Order Details:
+      Order Date: ${orderData.orderDate}
+      Order ID: #${orderData.orderId}
+      
+      Your Order Items:
+      ${orderData.orderItems.map(item => `- ${item.title} by ${item.author} (Qty: ${item.quantity}) - ${item.price}`).join('\n')}
+      
+      Total: ${orderData.orderTotal}
+      
+      Complete Your Payment:
+      To get your ebooks, please complete your payment using any of our payment methods:
+      - Bank Transfer (BCA, Mandiri, BNI)
+      - E-Wallet (OVO, DANA, GoPay)
+      - QRIS
+      
+      Complete Payment: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com'}/checkout/payment?order=${orderData.orderId}
+      
+      Need help? Contact us via WhatsApp: +6285799520350
+      
+      Thank you for choosing our Ebook Store!
+    `
+
+    return {
+      to: orderData.customerEmail,
+      subject: `⏰ Payment Reminder - Complete Your Order #${orderData.orderId}`,
+      htmlContent,
+      textContent
+    }
+  }
+
   // Payment confirmation email template
   generatePaymentConfirmationEmail(orderData: OrderEmailData & { downloadLinks?: string[] }): EmailData {
     const htmlContent = `

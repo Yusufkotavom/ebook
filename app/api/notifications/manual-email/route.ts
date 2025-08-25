@@ -34,8 +34,11 @@ export async function POST(request: NextRequest) {
     // Generate download links if order is paid
     const downloadLinks = order?.status === "paid" && order.order_items
       ? order.order_items
-          .filter((item) => item.products?.download_url)
-          .map((item) => `${item.products?.title} by ${item.products?.author}: ${item.products?.download_url}`)
+          .filter((item) => item.products && Array.isArray(item.products) && item.products[0]?.download_url)
+          .map((item) => {
+            const product = Array.isArray(item.products) ? item.products[0] : null
+            return `${product?.title || 'Unknown'} by ${product?.author || 'Unknown'}: ${product?.download_url}`
+          })
           .join("\n")
       : ""
 
@@ -65,12 +68,42 @@ ${downloadLinks}`
       console.error("Notification log error:", logError)
     }
 
-    // In a real implementation, you would integrate with an email service like:
-    // - SendGrid
-    // - AWS SES
-    // - Nodemailer with SMTP
-    // - Resend
-    // For now, we'll just log and return success
+    // Load email settings from database
+    const { data: allSettings } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", [
+        "email_provider", "brevo_api_key", "smtp_host", "smtp_port", 
+        "smtp_user", "smtp_pass", "email_from_address", "email_from_name", "email_reply_to"
+      ])
+
+    // Convert to key-value object
+    const emailConfig: any = {}
+    allSettings?.forEach(setting => {
+      emailConfig[setting.setting_key] = setting.setting_value
+    })
+
+    // Create email service instance with current settings
+    const { EmailService } = await import("@/lib/email-service")
+    const emailService = new EmailService({
+      provider: emailConfig.email_provider as 'brevo_api' | 'brevo_smtp',
+      brevo_api_key: emailConfig.brevo_api_key,
+      smtp_host: emailConfig.smtp_host,
+      smtp_port: parseInt(emailConfig.smtp_port || '587'),
+      smtp_user: emailConfig.smtp_user,
+      smtp_pass: emailConfig.smtp_pass,
+      from_address: emailConfig.email_from_address || 'noreply@yourdomain.com',
+      from_name: emailConfig.email_from_name || 'Ebook Store',
+      reply_to: emailConfig.email_reply_to,
+    })
+
+    // Send the email using the email service
+    const emailResult = await emailService.sendEmail({
+      to: email,
+      subject: `Order Update #${orderId.slice(0, 8)} - Ebook Store`,
+      htmlContent: finalMessage.replace(/\n/g, '<br>'),
+      textContent: finalMessage
+    })
 
     console.log("Manual Email Notification:", {
       to: email,
@@ -79,28 +112,18 @@ ${downloadLinks}`
       orderStatus,
       productsCount: products?.length || 0,
       hasDownloadLinks: !!downloadLinks,
-      messageLength: finalMessage.length
+      messageLength: finalMessage.length,
+      emailSent: emailResult.success,
+      emailError: emailResult.error
     })
-
-    // Example email service integration (commented):
-    /*
-    import { Resend } from 'resend'
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    
-    await resend.emails.send({
-      from: 'orders@ebookstore.com',
-      to: email,
-      subject: `Order Update #${orderId.slice(0, 8)} - Ebook Store`,
-      text: finalMessage,
-      html: finalMessage.replace(/\n/g, '<br>')
-    })
-    */
 
     return NextResponse.json({ 
       success: true, 
       message: "Manual email notification sent",
       hasDownloadLinks: !!downloadLinks,
-      notificationLogged: !logError
+      notificationLogged: !logError,
+      emailSent: emailResult.success,
+      emailError: emailResult.error
     })
 
   } catch (error) {

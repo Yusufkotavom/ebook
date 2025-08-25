@@ -36,7 +36,7 @@ export function MobileBottomNav() {
       id: "books",
       label: "Books",
       icon: Grid3X3,
-      href: "/books",
+      href: "/products",
       badge: null,
     },
     {
@@ -76,7 +76,7 @@ export function MobileBottomNav() {
       id: "books",
       label: "Books",
       icon: Grid3X3,
-      href: "/books",
+      href: "/products",
       badge: null,
     },
     {
@@ -164,6 +164,7 @@ export function MobileBottomNav() {
         <div className="fixed top-4 right-4 z-50 md:hidden">
           <button
             onClick={handleSignOut}
+            aria-label="Sign out"
             className="bg-white shadow-lg border border-gray-200 rounded-full p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
           >
             <LogOut className="h-4 w-4" />

@@ -3,18 +3,22 @@
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 export function ProductSearch() {
   const [searchTerm, setSearchTerm] = useState("")
   const router = useRouter()
+  const pathname = usePathname()
+
+  // Detect current route to generate correct URLs
+  const baseRoute = pathname.startsWith('/books') ? '/books' : '/products'
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchTerm.trim()) {
-      router.push(`/products?search=${encodeURIComponent(searchTerm.trim())}`)
+      router.push(`${baseRoute}?search=${encodeURIComponent(searchTerm.trim())}`)
     } else {
-      router.push("/products")
+      router.push(baseRoute)
     }
   }
 

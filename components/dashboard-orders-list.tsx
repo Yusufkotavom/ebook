@@ -52,17 +52,18 @@ export function DashboardOrdersList({ orders }: DashboardOrdersListProps) {
       {orders.map((order) => (
         <Card key={order.id}>
           <CardHeader>
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
               <div>
                 <CardTitle className="text-lg">Order #{order.id.slice(0, 8)}</CardTitle>
                 <CardDescription>{new Date(order.created_at).toLocaleDateString()}</CardDescription>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <p className="font-semibold text-lg">{formatPrice(order.total_amount)}</p>
                 <Badge
                   variant={
                     order.status === "paid" ? "default" : order.status === "pending" ? "secondary" : "destructive"
                   }
+                  className="mt-1"
                 >
                   {order.status}
                 </Badge>
@@ -73,17 +74,17 @@ export function DashboardOrdersList({ orders }: DashboardOrdersListProps) {
             <div className="space-y-4">
               {/* Order Items */}
               {order.order_items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
+                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg gap-3">
+                  <div className="flex-1">
                     <h4 className="font-medium">{item.products?.title}</h4>
                     <p className="text-sm text-gray-600">by {item.products?.author}</p>
                     <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-2">
                     <span className="font-medium">{formatPrice(item.price)}</span>
                     {order.status === "paid" && item.products?.download_url && (
                       <Link href={item.products.download_url} target="_blank">
-                        <Button size="sm">
+                        <Button size="sm" className="w-full sm:w-auto">
                           <Download className="h-4 w-4 mr-2" />
                           Download
                         </Button>

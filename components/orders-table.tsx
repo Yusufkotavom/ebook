@@ -65,11 +65,102 @@ export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
         if (order?.profiles?.email || order?.guest_email) {
           await sendPaymentConfirmation(orderId, order.profiles?.email || order.guest_email || "")
         }
+
+        // Create subscriptions for subscription orders
+        await createSubscriptionsForOrder(orderId)
       }
     } catch (error) {
       console.error("Error updating order:", error)
     } finally {
       setUpdatingOrder(null)
+    }
+  }
+
+  const createSubscriptionsForOrder = async (orderId: string) => {
+    try {
+      const supabase = createClient()
+      
+      // Get order details with subscription items
+      const { data: orderItems, error: itemsError } = await supabase
+        .from("order_items")
+        .select(`
+          id,
+          item_type,
+          subscription_package_id,
+          subscription_packages(
+            id,
+            name,
+            duration_days
+          )
+        `)
+        .eq("order_id", orderId)
+        .eq("item_type", "subscription")
+
+      if (itemsError) throw itemsError
+
+      if (!orderItems || orderItems.length === 0) {
+        console.log("No subscription items found for order:", orderId)
+        return
+      }
+
+      // Get order details to find user_id
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .select("user_id, guest_email")
+        .eq("id", orderId)
+        .single()
+
+      if (orderError) throw orderError
+
+      // If user already has an active subscription, deactivate it first
+      if (order.user_id) {
+        const { error: deactivateError } = await supabase
+          .from("user_subscriptions")
+          .update({ 
+            is_active: false, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq("user_id", order.user_id)
+          .eq("is_active", true)
+
+        if (deactivateError) {
+          console.error("Error deactivating existing subscription:", deactivateError)
+        } else {
+          console.log("Deactivated existing subscription for user:", order.user_id)
+        }
+      }
+
+      // Create subscriptions for each subscription item
+      for (const item of orderItems) {
+        if (item.subscription_package_id && item.subscription_packages) {
+          const packageData = item.subscription_packages
+          
+          // Calculate subscription dates
+          const startDate = new Date()
+          const endDate = new Date()
+          endDate.setDate(endDate.getDate() + (packageData.duration_days || 1))
+
+          // Create subscription record
+          const { error: subscriptionError } = await supabase
+            .from("user_subscriptions")
+            .insert({
+              user_id: order.user_id,
+              subscription_package_id: item.subscription_package_id,
+              start_date: startDate.toISOString(),
+              end_date: endDate.toISOString(),
+              is_active: true,
+              order_id: orderId,
+            })
+
+          if (subscriptionError) {
+            console.error("Error creating subscription:", subscriptionError)
+          } else {
+            console.log(`✅ Subscription created for package: ${packageData.name}`)
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error creating subscriptions:", error)
     }
   }
 

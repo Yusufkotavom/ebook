@@ -12,6 +12,8 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import { Toaster } from "react-hot-toast"
 import { NavigationProgress } from "@/components/navigation-progress"
 import { GlobalLoading } from "@/components/global-loading"
+import { LoadingProvider } from "@/hooks/use-loading"
+import { CompilationDetector } from "@/components/compilation-detector"
 import { Suspense } from "react"
 import { ConditionalLayout } from "@/components/conditional-layout"
 
@@ -37,48 +39,51 @@ html {
         `}</style>
       </head>
       <body>
-        <AuthProvider>
-          <CurrencyProvider>
-            <CartProvider>
-              <Suspense>
-                <NavigationProgress />
-              </Suspense>
-              <Suspense>
-                <GlobalLoading />
-              </Suspense>
-              <ConditionalLayout>
-                {children}
-              </ConditionalLayout>
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#ffffff',
-                    color: '#000000',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                  },
-                  success: {
-                    duration: 3000,
-                    iconTheme: {
-                      primary: '#22c55e',
-                      secondary: '#ffffff',
+        <LoadingProvider>
+          <AuthProvider>
+            <CurrencyProvider>
+              <CartProvider>
+                <Suspense>
+                  <NavigationProgress />
+                </Suspense>
+                <Suspense>
+                  <GlobalLoading />
+                </Suspense>
+                <CompilationDetector />
+                <ConditionalLayout>
+                  {children}
+                </ConditionalLayout>
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      background: '#ffffff',
+                      color: '#000000',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                     },
-                  },
-                  error: {
-                    duration: 5000,
-                    iconTheme: {
-                      primary: '#ef4444',
-                      secondary: '#ffffff',
+                    success: {
+                      duration: 3000,
+                      iconTheme: {
+                        primary: '#22c55e',
+                        secondary: '#ffffff',
+                      },
                     },
-                  },
-                }}
-              />
-            </CartProvider>
-          </CurrencyProvider>
-        </AuthProvider>
+                    error: {
+                      duration: 5000,
+                      iconTheme: {
+                        primary: '#ef4444',
+                        secondary: '#ffffff',
+                      },
+                    },
+                  }}
+                />
+              </CartProvider>
+            </CurrencyProvider>
+          </AuthProvider>
+        </LoadingProvider>
       </body>
     </html>
   )

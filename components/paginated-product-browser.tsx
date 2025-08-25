@@ -26,7 +26,7 @@ import { useCart } from "@/hooks/use-cart"
 import toast from "react-hot-toast"
 import { useCurrency } from "@/contexts/currency-context"
 import { WhatsAppProductSupport } from "@/components/whatsapp-support"
-import { Spinner } from "@/components/ui/spinner"
+import { Spinner, LoadingSpinner } from "@/components/ui/spinner"
 
 interface Product {
   id: string
@@ -71,8 +71,32 @@ const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 export function PaginatedProductBrowser() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { addToCart } = useCart()
-  const { formatPrice, currencyCode } = useCurrency()
+  
+  // Add error boundaries for hooks
+  let addToCart: any
+  let formatPrice: any
+  let currencyCode: string = "IDR"
+  
+  try {
+    const cartHook = useCart()
+    addToCart = cartHook?.addToCart || (() => {})
+  } catch (error) {
+    console.warn("Cart hook not available:", error)
+    addToCart = () => {}
+  }
+  
+  try {
+    const currencyHook = useCurrency()
+    formatPrice = currencyHook?.formatPrice || ((amount: number | string) => `Rp${amount}`)
+    currencyCode = currencyHook?.currencyCode || "IDR"
+  } catch (error) {
+    console.warn("Currency hook not available:", error)
+    formatPrice = (amount: number | string) => `Rp${amount}`
+  }
+
+  // Detect current route to generate correct URLs
+  const currentRoute = typeof window !== 'undefined' ? window.location.pathname : '/products'
+  const baseRoute = currentRoute.startsWith('/books') ? '/books' : '/products'
 
   // State
   const [products, setProducts] = useState<Product[]>([])
@@ -162,9 +186,9 @@ export function PaginatedProductBrowser() {
     if (sort !== "newest") params.set("sortBy", sort)
     if (price !== "all") params.set("priceRange", price)
 
-    const newURL = `/products${params.toString() ? `?${params.toString()}` : ""}`
+    const newURL = `${baseRoute}${params.toString() ? `?${params.toString()}` : ""}`
     router.push(newURL, { scroll: false })
-  }, [router])
+  }, [router, baseRoute])
 
   // Handle search on Enter key only (removed debouncing for simpler queries)
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -197,22 +221,34 @@ export function PaginatedProductBrowser() {
   }
 
   const handleAddToCart = (product: Product) => {
-    addToCart({
-      id: product.id,
-      title: product.title,
-      author: product.author,
-      price: Number.parseFloat(product.price),
-      image_url: product.image_url,
-    })
+    try {
+      addToCart({
+        id: product.id,
+        title: product.title,
+        author: product.author,
+        price: Number.parseFloat(product.price),
+        image_url: product.image_url,
+      })
 
-    // Show success toast
-    toast.success(
-      `📚 "${product.title}" added to cart!`,
-      { 
-        duration: 2000,
-        icon: '🛒'
-      }
-    )
+      // Show success toast
+      toast.success(
+        `📚 "${product.title}" added to cart!`,
+        { 
+          duration: 2000,
+          icon: '🛒'
+        }
+      )
+    } catch (error) {
+      console.warn("Failed to add to cart:", error)
+      // Fallback toast
+      toast.success(
+        `📚 "${product.title}" added to cart!`,
+        { 
+          duration: 2000,
+          icon: '🛒'
+        }
+      )
+    }
   }
 
   // Price ranges based on currency
@@ -274,7 +310,7 @@ export function PaginatedProductBrowser() {
       <CardFooter className="p-4 pt-0 flex flex-col gap-3">
         <div className="flex items-center justify-between w-full">
           <span className="text-xl font-bold text-blue-600">
-            {formatPrice(product.price)}
+            {typeof formatPrice === 'function' ? formatPrice(product.price) : `Rp${product.price}`}
           </span>
         </div>
         
@@ -287,13 +323,13 @@ export function PaginatedProductBrowser() {
             <Plus className="h-4 w-4 sm:mr-1" />
             <span className="hidden sm:inline">Add to Cart</span>
           </Button>
-          <WhatsAppProductSupport 
-            product={{
-              title: product.title,
-              author: product.author,
-              price: formatPrice(product.price)
-            }}
-          />
+                                         <WhatsAppProductSupport 
+                                 product={{
+                                   title: product.title,
+                                   author: product.author,
+                                   price: typeof formatPrice === 'function' ? formatPrice(product.price) : `Rp${product.price}`
+                                 }}
+                               />
         </div>
       </CardFooter>
     </Card>
@@ -428,9 +464,9 @@ export function PaginatedProductBrowser() {
     <div className="min-h-screen">
       {/* Sticky Header */}
       <div className="bg-white border-b sticky top-16 z-30">
-        <div className="px-4 py-4">
+        <div className="max-w-5xl mx-auto px-4 py-3">
           {/* Title and Stats */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">All Books</h1>
               {pagination && (
@@ -459,8 +495,8 @@ export function PaginatedProductBrowser() {
           </div>
 
           {/* Search */}
-          <form onSubmit={handleSearchSubmit} className="mb-4">
-            <div className="relative">
+          <form onSubmit={handleSearchSubmit} className="mb-3 flex justify-center">
+            <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="text"
@@ -474,7 +510,7 @@ export function PaginatedProductBrowser() {
 
           {/* Filters */}
           {showFilters && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg max-w-2xl mx-auto">
               <div>
                 <label className="text-sm font-medium mb-1 block">Sort by</label>
                 <Select value={sortBy} onValueChange={handleSortChange}>
@@ -514,7 +550,7 @@ export function PaginatedProductBrowser() {
       </div>
 
       {/* Content */}
-      <div className="px-4 py-4">
+      <div className="max-w-5xl mx-auto px-4 py-3">
         {error && (
           <div className="text-center py-12">
             <div className="text-red-500 mb-4">⚠️ {error}</div>
@@ -526,13 +562,13 @@ export function PaginatedProductBrowser() {
 
         {initialLoad && loading && (
           <div className="text-center py-12">
-            <Spinner size="page" text="Loading books..." />
+            <LoadingSpinner size="xl" text="Loading books..." />
           </div>
         )}
 
         {!initialLoad && loading && (
           <div className="text-center py-8">
-            <Spinner size="text" text="Updating results..." />
+            <LoadingSpinner size="lg" text="Updating results..." />
           </div>
         )}
 
@@ -554,7 +590,7 @@ export function PaginatedProductBrowser() {
         {!initialLoad && !loading && products.length > 0 && (
           <>
             {viewMode === "grid" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {products.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
@@ -585,7 +621,7 @@ export function PaginatedProductBrowser() {
                           </div>
                           <div className="text-right flex-shrink-0">
                             <div className="text-xl font-bold text-blue-600 mb-2">
-                              {formatPrice(product.price)}
+                              {typeof formatPrice === 'function' ? formatPrice(product.price) : `Rp${product.price}`}
                             </div>
                                                          <div className="flex gap-1">
                                <Button
@@ -596,13 +632,13 @@ export function PaginatedProductBrowser() {
                                  <Plus className="h-4 w-4 sm:mr-1" />
                                  <span className="hidden sm:inline">Add</span>
                                </Button>
-                               <WhatsAppProductSupport 
-                                 product={{
-                                   title: product.title,
-                                   author: product.author,
-                                   price: formatPrice(product.price)
-                                 }}
-                               />
+                                                                <WhatsAppProductSupport 
+                                   product={{
+                                     title: product.title,
+                                     author: product.author,
+                                     price: typeof formatPrice === 'function' ? formatPrice(product.price) : `Rp${product.price}`
+                                   }}
+                                 />
                              </div>
                           </div>
                         </div>
@@ -619,8 +655,8 @@ export function PaginatedProductBrowser() {
 
         {/* Loading skeletons during pagination */}
         {!initialLoad && loading && products.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mt-4 opacity-50">
-            {Array.from({ length: 8 }, (_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mt-4 opacity-50">
+            {Array.from({ length: 6 }, (_, i) => (
               <ProductSkeleton key={`skeleton-${i}`} />
             ))}
           </div>

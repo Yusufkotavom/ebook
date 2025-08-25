@@ -189,11 +189,11 @@ export function WhatsAppPaymentSupport({
 }
 
 interface WhatsAppProductSupportProps {
-  productTitle?: string
+  product?: { title?: string; author?: string; price?: string }
   className?: string
 }
 
-export function WhatsAppProductSupport({ product, className }: { product?: { title?: string; author?: string; price?: string }; className?: string }) {
+export function WhatsAppProductSupport({ product, className }: WhatsAppProductSupportProps) {
   const handleClick = () => {
     const message = product 
       ? `Hi! I'm interested in "${product.title}" by ${product.author} (${product.price}). Is this available?`
@@ -223,15 +223,15 @@ interface WhatsAppOrderSupportProps {
 
 export function WhatsAppOrderSupport({ orderId, className }: WhatsAppOrderSupportProps) {
   return (
-    <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-2", className)}>
+    <div className={cn("grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2", className)}>
       <WhatsAppButton
         type="order_status"
         options={{ orderId }}
         variant="outline"
         size="sm"
-        className="border-green-200 text-green-700 hover:bg-green-50"
+        className="border-green-200 text-green-700 hover:bg-green-50 w-full"
       >
-        Order Status
+        <span className="text-xs sm:text-sm">Order Status</span>
       </WhatsAppButton>
       
       <WhatsAppButton
@@ -239,9 +239,9 @@ export function WhatsAppOrderSupport({ orderId, className }: WhatsAppOrderSuppor
         options={{ orderId }}
         variant="outline"
         size="sm"
-        className="border-green-200 text-green-700 hover:bg-green-50"
+        className="border-green-200 text-green-700 hover:bg-green-50 w-full"
       >
-        Report Issue
+        <span className="text-xs sm:text-sm">Report Issue</span>
       </WhatsAppButton>
       
       <WhatsAppButton
@@ -249,9 +249,9 @@ export function WhatsAppOrderSupport({ orderId, className }: WhatsAppOrderSuppor
         options={{ orderId }}
         variant="outline"
         size="sm"
-        className="border-green-200 text-green-700 hover:bg-green-50"
+        className="border-green-200 text-green-700 hover:bg-green-50 w-full sm:col-span-2 md:col-span-1"
       >
-        Download Help
+        <span className="text-xs sm:text-sm">Download Help</span>
       </WhatsAppButton>
     </div>
   )
