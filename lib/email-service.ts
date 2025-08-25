@@ -43,43 +43,46 @@ class EmailService {
   private brevoApi?: brevo.TransactionalEmailsApi
   private smtpTransporter?: nodemailer.Transporter
 
-  constructor() {
-    // Load configuration from environment variables
+  constructor(config?: Partial<EmailConfig>) {
+    // Load configuration from environment variables or passed config
     this.config = {
-      provider: process.env.EMAIL_PROVIDER as 'brevo_api' | 'brevo_smtp' || 'brevo_api',
-      brevo_api_key: process.env.BREVO_API_KEY,
-      smtp_host: process.env.SMTP_HOST,
-      smtp_port: parseInt(process.env.SMTP_PORT || '587'),
-      smtp_user: process.env.SMTP_USER,
-      smtp_pass: process.env.SMTP_PASS,
-      from_address: process.env.EMAIL_FROM_ADDRESS || 'noreply@yourdomain.com',
-      from_name: process.env.EMAIL_FROM_NAME || 'Ebook Store',
-      reply_to: process.env.EMAIL_REPLY_TO,
+      provider: (config?.provider || process.env.EMAIL_PROVIDER as 'brevo_api' | 'brevo_smtp') || 'brevo_api',
+      brevo_api_key: config?.brevo_api_key || process.env.BREVO_API_KEY,
+      smtp_host: config?.smtp_host || process.env.SMTP_HOST,
+      smtp_port: config?.smtp_port || parseInt(process.env.SMTP_PORT || '587'),
+      smtp_user: config?.smtp_user || process.env.SMTP_USER,
+      smtp_pass: config?.smtp_pass || process.env.SMTP_PASS,
+      from_address: config?.from_address || process.env.EMAIL_FROM_ADDRESS || 'noreply@yourdomain.com',
+      from_name: config?.from_name || process.env.EMAIL_FROM_NAME || 'Ebook Store',
+      reply_to: config?.reply_to || process.env.EMAIL_REPLY_TO,
     }
 
+    this.initializeService()
+  }
+
+  // Method to update configuration at runtime
+  updateConfig(newConfig: Partial<EmailConfig>) {
+    this.config = { ...this.config, ...newConfig }
     this.initializeService()
   }
 
   private initializeService() {
     try {
       if (this.config.provider === 'brevo_api' && this.config.brevo_api_key) {
-        // Initialize Brevo API - skip during build time
-        if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
-          try {
-            const defaultClient = brevo.ApiClient.instance
-            if (defaultClient && defaultClient.authentications) {
-              const apiKey = defaultClient.authentications['api-key']
-              if (apiKey) {
-                apiKey.apiKey = this.config.brevo_api_key
-                this.brevoApi = new brevo.TransactionalEmailsApi()
-                console.log('✅ Brevo API initialized successfully')
-              }
-            }
-          } catch (brevoError) {
-            console.log('⚠️ Brevo API not available during build, will initialize at runtime')
-          }
+        // Initialize Brevo API using the correct method
+        try {
+          // Create the transactional emails API instance
+          this.brevoApi = new brevo.TransactionalEmailsApi()
+          
+          // Set the API key using the correct method
+          this.brevoApi.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, this.config.brevo_api_key)
+          
+          console.log('✅ Brevo API initialized successfully')
+        } catch (brevoError) {
+          console.error('❌ Failed to initialize Brevo API:', brevoError)
+          console.log('⚠️ Brevo API not available during build, will initialize at runtime')
         }
-      } else if (this.config.provider === 'brevo_smtp') {
+      } else if (this.config.provider === 'brevo_smtp' && this.config.smtp_host && this.config.smtp_user && this.config.smtp_pass) {
         // Initialize SMTP transporter
         this.smtpTransporter = nodemailer.createTransporter({
           host: this.config.smtp_host,
@@ -100,12 +103,28 @@ class EmailService {
   // Send generic email
   async sendEmail(emailData: EmailData): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
+      // Debug logging
+      console.log('🔍 Email service configuration:', {
+        provider: this.config.provider,
+        hasBrevoApi: !!this.brevoApi,
+        hasSmtpTransporter: !!this.smtpTransporter,
+        hasApiKey: !!this.config.brevo_api_key,
+        hasSmtpConfig: !!(this.config.smtp_host && this.config.smtp_user && this.config.smtp_pass)
+      })
+
       if (this.config.provider === 'brevo_api' && this.brevoApi) {
         return await this.sendViaBrevoAPI(emailData)
       } else if (this.config.provider === 'brevo_smtp' && this.smtpTransporter) {
         return await this.sendViaSMTP(emailData)
       } else {
-        throw new Error('Email service not properly configured')
+        // More detailed error message
+        let errorDetails = `Provider: ${this.config.provider}, `
+        if (this.config.provider === 'brevo_api') {
+          errorDetails += `Brevo API initialized: ${!!this.brevoApi}, API Key present: ${!!this.config.brevo_api_key}`
+        } else if (this.config.provider === 'brevo_smtp') {
+          errorDetails += `SMTP configured: ${!!this.smtpTransporter}, Host: ${this.config.smtp_host}, User: ${this.config.smtp_user}`
+        }
+        throw new Error(`Email service not properly configured: ${errorDetails}`)
       }
     } catch (error) {
       console.error('❌ Failed to send email:', error)
@@ -121,18 +140,21 @@ class EmailService {
     // Runtime initialization if not already done
     if (!this.brevoApi && this.config.brevo_api_key) {
       try {
-        const defaultClient = brevo.ApiClient.instance
-        const apiKey = defaultClient.authentications['api-key']
-        apiKey.apiKey = this.config.brevo_api_key
+        // Create the transactional emails API instance
         this.brevoApi = new brevo.TransactionalEmailsApi()
+        
+        // Set the API key using the correct method
+        this.brevoApi.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, this.config.brevo_api_key)
+        
         console.log('✅ Brevo API initialized at runtime')
       } catch (error) {
+        console.error('❌ Failed to initialize Brevo API at runtime:', error)
         throw new Error(`Failed to initialize Brevo API: ${error}`)
       }
     }
 
     if (!this.brevoApi) {
-      throw new Error('Brevo API not initialized')
+      throw new Error('Brevo API not initialized - check your API key configuration')
     }
 
     const sendSmtpEmail = new brevo.SendSmtpEmail()
@@ -388,3 +410,6 @@ class EmailService {
 // Export singleton instance
 export const emailService = new EmailService()
 export default emailService
+
+// Export the class for creating new instances
+export { EmailService }

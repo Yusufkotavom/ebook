@@ -57,8 +57,8 @@ export function EmailSettingsForm() {
     try {
       const { data, error } = await supabase
         .from('app_settings')
-        .select('setting_key, setting_value')
-        .in('setting_key', [
+        .select('key, value')
+        .in('key', [
           'email_provider', 'email_from_address', 'email_from_name', 'email_reply_to',
           'brevo_api_key', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass',
           'email_notifications_enabled'
@@ -68,7 +68,7 @@ export function EmailSettingsForm() {
 
       if (data) {
         const settingsMap = data.reduce((acc, item) => {
-          acc[item.setting_key] = item.setting_value
+          acc[item.key] = item.value
           return acc
         }, {} as Record<string, string>)
 
@@ -94,8 +94,8 @@ export function EmailSettingsForm() {
       
       // Prepare updates
       const updates = Object.entries(settings).map(([key, value]) => ({
-        setting_key: key,
-        setting_value: value,
+        key: key,
+        value: value,
         updated_at: new Date().toISOString()
       }))
 
@@ -103,7 +103,7 @@ export function EmailSettingsForm() {
       for (const update of updates) {
         const { error } = await supabase
           .from('app_settings')
-          .upsert(update, { onConflict: 'setting_key' })
+          .upsert(update, { onConflict: 'key' })
 
         if (error) throw error
       }

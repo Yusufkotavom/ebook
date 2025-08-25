@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import emailService from "@/lib/email-service"
+import { EmailService } from "@/lib/email-service"
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,25 +12,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Temporarily update environment variables for testing
-    if (settings) {
-      // Update process.env for this test
-      process.env.EMAIL_PROVIDER = settings.email_provider
-      process.env.BREVO_API_KEY = settings.brevo_api_key
-      process.env.SMTP_HOST = settings.smtp_host
-      process.env.SMTP_PORT = settings.smtp_port
-      process.env.SMTP_USER = settings.smtp_user
-      process.env.SMTP_PASS = settings.smtp_pass
-      process.env.EMAIL_FROM_ADDRESS = settings.email_from_address
-      process.env.EMAIL_FROM_NAME = settings.email_from_name
-      process.env.EMAIL_REPLY_TO = settings.email_reply_to
+    if (!settings) {
+      return NextResponse.json(
+        { error: "Email settings are required" },
+        { status: 400 }
+      )
     }
 
-    // Create a new email service instance with updated settings
-    const testEmailService = new (require("@/lib/email-service").default.constructor)()
+    // Create email service with the provided settings
+    const emailService = new EmailService({
+      provider: settings.email_provider as 'brevo_api' | 'brevo_smtp',
+      brevo_api_key: settings.brevo_api_key,
+      smtp_host: settings.smtp_host,
+      smtp_port: parseInt(settings.smtp_port),
+      smtp_user: settings.smtp_user,
+      smtp_pass: settings.smtp_pass,
+      from_address: settings.email_from_address,
+      from_name: settings.email_from_name,
+      reply_to: settings.email_reply_to,
+    })
     
     // Send test email
-    const result = await testEmailService.sendTestEmail(toEmail)
+    const result = await emailService.sendTestEmail(toEmail)
 
     if (result.success) {
       return NextResponse.json({
