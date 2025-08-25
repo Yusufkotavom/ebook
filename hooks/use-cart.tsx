@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useReducer, type ReactNode } from "react"
+import { createContext, useContext, useReducer, useEffect, type ReactNode } from "react"
 
 interface CartItem {
   id: string
@@ -9,6 +9,9 @@ interface CartItem {
   price: number
   image_url: string | null
   quantity: number
+  isSubscription?: boolean
+  subscriptionPackageId?: string
+  duration_days?: number | null
 }
 
 interface CartState {
@@ -22,6 +25,7 @@ type CartAction =
   | { type: "REMOVE_ITEM"; payload: string }
   | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
   | { type: "CLEAR_CART" }
+  | { type: "LOAD_CART"; payload: CartState }
 
 const CartContext = createContext<{
   state: CartState
@@ -30,6 +34,14 @@ const CartContext = createContext<{
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
 } | null>(null)
+
+// Helper function to calculate totals
+function calculateTotals(items: CartItem[]): { total: number; itemCount: number } {
+  return {
+    total: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
+  }
+}
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
@@ -42,37 +54,40 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         )
         return {
           items: updatedItems,
-          total: updatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-          itemCount: updatedItems.reduce((sum, item) => sum + item.quantity, 0),
+          ...calculateTotals(updatedItems),
         }
       }
 
       const newItems = [...state.items, { ...action.payload, quantity: 1 }]
       return {
         items: newItems,
-        total: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-        itemCount: newItems.reduce((sum, item) => sum + item.quantity, 0),
+        ...calculateTotals(newItems),
       }
     }
 
     case "REMOVE_ITEM": {
-      const newItems = state.items.filter((item) => item.id !== action.payload)
+      const filteredItems = state.items.filter((item) => item.id !== action.payload)
       return {
-        items: newItems,
-        total: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-        itemCount: newItems.reduce((sum, item) => sum + item.quantity, 0),
+        items: filteredItems,
+        ...calculateTotals(filteredItems),
       }
     }
 
     case "UPDATE_QUANTITY": {
-      const newItems = state.items
-        .map((item) => (item.id === action.payload.id ? { ...item, quantity: action.payload.quantity } : item))
-        .filter((item) => item.quantity > 0)
+      if (action.payload.quantity <= 0) {
+        const filteredItems = state.items.filter((item) => item.id !== action.payload.id)
+        return {
+          items: filteredItems,
+          ...calculateTotals(filteredItems),
+        }
+      }
 
+      const updatedItems = state.items.map((item) =>
+        item.id === action.payload.id ? { ...item, quantity: action.payload.quantity } : item,
+      )
       return {
-        items: newItems,
-        total: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-        itemCount: newItems.reduce((sum, item) => sum + item.quantity, 0),
+        items: updatedItems,
+        ...calculateTotals(updatedItems),
       }
     }
 
@@ -83,8 +98,49 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         itemCount: 0,
       }
 
+    case "LOAD_CART":
+      return action.payload
+
     default:
       return state
+  }
+}
+
+// Helper function to save cart to localStorage
+function saveCartToStorage(state: CartState) {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem("cart", JSON.stringify(state))
+    } catch (error) {
+      console.error("Failed to save cart to localStorage:", error)
+    }
+  }
+}
+
+// Helper function to load cart from localStorage
+function loadCartFromStorage(): CartState {
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("cart")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        // Validate the structure and recalculate totals for safety
+        if (parsed.items && Array.isArray(parsed.items)) {
+          return {
+            items: parsed.items,
+            ...calculateTotals(parsed.items),
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load cart from localStorage:", error)
+    }
+  }
+  
+  return {
+    items: [],
+    total: 0,
+    itemCount: 0,
   }
 }
 
@@ -94,6 +150,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     total: 0,
     itemCount: 0,
   })
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = loadCartFromStorage()
+    if (savedCart.items.length > 0) {
+      dispatch({ type: "LOAD_CART", payload: savedCart })
+    }
+  }, [])
+
+  // Save cart to localStorage whenever state changes
+  useEffect(() => {
+    saveCartToStorage(state)
+  }, [state])
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     dispatch({ type: "ADD_ITEM", payload: item })

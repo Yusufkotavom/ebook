@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react"
 import { useCart } from "@/hooks/use-cart"
+import { useCurrency } from "@/contexts/currency-context"
 import Image from "next/image"
 import Link from "next/link"
 
 export function FloatingCart() {
   const { state, updateQuantity, removeFromCart } = useCart()
+  const { formatPrice } = useCurrency()
 
   if (state.itemCount === 0) {
     return null
@@ -53,7 +55,7 @@ export function FloatingCart() {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-sm line-clamp-2">{item.title}</h4>
                     <p className="text-xs text-gray-500">by {item.author}</p>
-                    <p className="text-sm font-medium">${item.price.toFixed(2)}</p>
+                    <p className="text-sm font-medium">{formatPrice(item.price)}</p>
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -77,7 +79,7 @@ export function FloatingCart() {
           <div className="flex-shrink-0 mt-6 pt-4 border-t space-y-4">
             <div className="flex justify-between items-center text-lg font-semibold">
               <span>Total:</span>
-              <span>${state.total.toFixed(2)}</span>
+              <span>{formatPrice(state.total)}</span>
             </div>
 
             <Link href="/checkout" className="block">

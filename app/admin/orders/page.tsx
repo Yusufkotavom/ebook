@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/server"
+import { SectionLoading } from "@/components/page-loading"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
@@ -8,6 +9,7 @@ import { OrdersTable } from "@/components/orders-table"
 export default async function AdminOrdersPage() {
   const supabase = await createClient()
 
+  // Fetch orders without profiles relationship to avoid schema cache issues
   const { data: orders, error } = await supabase
     .from("orders")
     .select(`
@@ -17,6 +19,8 @@ export default async function AdminOrdersPage() {
       payment_method,
       user_id,
       guest_email,
+      guest_name,
+      guest_whatsapp,
       created_at,
       updated_at,
       order_items(
@@ -26,7 +30,7 @@ export default async function AdminOrdersPage() {
       )
     `)
     .order("created_at", { ascending: false })
-
+  
   if (error) {
     console.error("Error fetching orders:", error)
     return (
@@ -54,20 +58,21 @@ export default async function AdminOrdersPage() {
     )
   }
 
+  // Fetch profiles separately to avoid relationship issues
   const userIds = orders?.filter((order) => order.user_id).map((order) => order.user_id) || []
   let profiles = []
 
   if (userIds.length > 0) {
-    const { data: profilesData } = await supabase.from("profiles").select("id, email, full_name").in("id", userIds)
-
+    const { data: profilesData } = await supabase.from("profiles").select("id, email, full_name, whatsapp_number").in("id", userIds)
     profiles = profilesData || []
   }
 
   const ordersWithProfiles =
     orders?.map((order) => ({
       ...order,
+      profiles: order.user_id ? profiles.find((p) => p.id === order.user_id) : null,
       customer_email: order.guest_email || profiles.find((p) => p.id === order.user_id)?.email || "Unknown",
-      customer_name: profiles.find((p) => p.id === order.user_id)?.full_name || null,
+      customer_name: order.guest_name || profiles.find((p) => p.id === order.user_id)?.full_name || "Guest",
     })) || []
 
   return (

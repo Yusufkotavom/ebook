@@ -145,3 +145,48 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* NProgress Loading Bar Styles */
+#nprogress {
+  pointer-events: none;
+}
+
+#nprogress .bar {
+  background: #4f46e5;
+  position: fixed;
+  z-index: 1031;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+}
+
+/* Fancy blur effect */
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0px;
+  width: 100px;
+  height: 100%;
+  box-shadow: 0 0 10px #4f46e5, 0 0 5px #4f46e5;
+  opacity: 1.0;
+  transform: rotate(3deg) translate(0px, -4px);
+}
+
+/* Admin variant - indigo color */
+.admin-progress #nprogress .bar {
+  background: #6366f1;
+}
+
+.admin-progress #nprogress .peg {
+  box-shadow: 0 0 10px #6366f1, 0 0 5px #6366f1;
+}
+
+/* Dashboard variant - green color */
+.dashboard-progress #nprogress .bar {
+  background: #10b981;
+}
+
+.dashboard-progress #nprogress .peg {
+  box-shadow: 0 0 10px #10b981, 0 0 5px #10b981;
+}

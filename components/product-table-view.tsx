@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Search, ShoppingCart, Filter } from "lucide-react"
 import Image from "next/image"
 import { useCart } from "@/hooks/use-cart"
+import { useCurrency } from "@/contexts/currency-context"
+import { getPriceRanges } from "@/lib/currency"
 
 interface Product {
   id: string
@@ -33,6 +35,9 @@ export function ProductTableView({ products }: ProductTableViewProps) {
   const [sortBy, setSortBy] = useState("newest")
   const [priceRange, setPriceRange] = useState("all")
   const { addToCart } = useCart()
+  const { formatPrice, currencyCode } = useCurrency()
+  
+  const priceRanges = getPriceRanges(currencyCode)
 
   const handleAddToCart = (product: Product) => {
     addToCart({
@@ -52,12 +57,11 @@ export function ProductTableView({ products }: ProductTableViewProps) {
         product.publisher.toLowerCase().includes(searchTerm.toLowerCase())
 
       const price = Number.parseFloat(product.price)
-      const matchesPrice =
-        priceRange === "all" ||
-        (priceRange === "0-20" && price <= 20) ||
-        (priceRange === "20-40" && price > 20 && price <= 40) ||
-        (priceRange === "40-60" && price > 40 && price <= 60) ||
-        (priceRange === "60+" && price > 60)
+      const selectedRange = priceRanges.find(range => range.value === priceRange)
+      const matchesPrice = priceRange === "all" || 
+        (selectedRange && 
+         (selectedRange.min === undefined || price >= selectedRange.min) &&
+         (selectedRange.max === undefined || price <= selectedRange.max))
 
       return matchesSearch && matchesPrice
     })
@@ -129,11 +133,11 @@ export function ProductTableView({ products }: ProductTableViewProps) {
                   <SelectValue placeholder="Price Range" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Prices</SelectItem>
-                  <SelectItem value="0-20">$0 - $20</SelectItem>
-                  <SelectItem value="20-40">$20 - $40</SelectItem>
-                  <SelectItem value="40-60">$40 - $60</SelectItem>
-                  <SelectItem value="60+">$60+</SelectItem>
+                  {priceRanges.map((range) => (
+                    <SelectItem key={range.value} value={range.value}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -188,7 +192,7 @@ export function ProductTableView({ products }: ProductTableViewProps) {
                   <TableCell className="text-gray-600">{product.year}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="font-semibold">
-                      ${Number.parseFloat(product.price).toFixed(2)}
+                      {formatPrice(product.price)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">

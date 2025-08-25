@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/server"
+import { formatPriceServer } from "@/lib/currency-server"
 import { type NextRequest, NextResponse } from "next/server"
+import emailService from "@/lib/email-service"
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,23 +30,107 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
 
-    // Create download links message
+    // Format individual item prices
+    const itemPrice = await formatPriceServer(order.total_amount / order.order_items.length)
+    
+    // Prepare order data for email template
+    const orderItems = order.order_items.map((item, index) => ({
+      title: item.products?.title || 'Unknown Product',
+      author: item.products?.author || 'Unknown Author',
+      price: itemPrice, // Use pre-formatted price
+      quantity: 1
+    }))
+
     const downloadLinks = order.order_items
       .filter((item) => item.products?.download_url)
-      .map((item) => `${item.products?.title} by ${item.products?.author}: ${item.products?.download_url}`)
-      .join("\n")
+      .map((item) => item.products?.download_url)
 
-    const message = `Payment Confirmed! 🎉
+    // Format price using the current currency system
+    const formattedTotal = await formatPriceServer(order.total_amount)
 
-Your order #${orderId.slice(0, 8)} has been processed successfully.
+    // Generate email using template
+    const orderEmailData = {
+      customerName: email.split('@')[0], // Extract name from email as fallback
+      customerEmail: email,
+      orderId: orderId.slice(0, 8),
+      orderTotal: formattedTotal,
+      orderItems: orderItems,
+      downloadLinks: downloadLinks
+    }
 
-Download your ebooks:
-${downloadLinks}
+    const emailData = emailService.generatePaymentConfirmationEmail(orderEmailData)
+    
+    // Send actual email
+    const emailResult = await emailService.sendEmail(emailData)
 
-Total: Rp ${Number.parseFloat(order.total_amount).toLocaleString('id-ID')}
+    // Update order status to completed and activate subscriptions
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({ status: "completed" })
+      .eq("id", orderId)
 
-Thank you for your purchase!
-- Ebook Store Team`
+    if (updateError) {
+      console.error("Error updating order status:", updateError)
+    } else {
+      console.log(`✅ Order ${orderId} marked as completed`)
+      
+      // Check if order contains subscriptions and activate them
+      try {
+        // First, get subscription items from the order
+        const { data: subscriptionItems, error: itemsError } = await supabase
+          .from("order_items")
+          .select("subscription_package_id")
+          .eq("order_id", orderId)
+          .eq("item_type", "subscription")
+          .not("subscription_package_id", "is", null)
+
+        if (itemsError) {
+          console.error("Error fetching subscription items:", itemsError)
+        } else if (subscriptionItems && subscriptionItems.length > 0) {
+          console.log(`Found ${subscriptionItems.length} subscription items to activate`)
+          
+          // Get order details to find the user
+          const { data: orderData, error: orderError } = await supabase
+            .from("orders")
+            .select("user_id")
+            .eq("id", orderId)
+            .single()
+
+          if (orderError || !orderData?.user_id) {
+            console.error("Error fetching order user:", orderError)
+          } else {
+            // Activate each subscription
+            for (const item of subscriptionItems) {
+              try {
+                const { error: activationError } = await supabase.rpc(
+                  'activate_subscription',
+                  {
+                    user_uuid: orderData.user_id,
+                    package_uuid: item.subscription_package_id,
+                    order_uuid: orderId
+                  }
+                )
+
+                if (activationError) {
+                  console.error(`Error activating subscription ${item.subscription_package_id}:`, activationError)
+                } else {
+                  console.log(`✅ Subscription ${item.subscription_package_id} activated for user ${orderData.user_id}`)
+                }
+              } catch (error) {
+                console.error(`Failed to activate subscription ${item.subscription_package_id}:`, error)
+              }
+            }
+          }
+        } else {
+          console.log("No subscription items found in order")
+        }
+      } catch (subError) {
+        console.error("Subscription activation failed:", subError)
+      }
+    }
+
+    // Create message for logging
+    const logMessage = `Payment Confirmed! Order #${orderId.slice(0, 8)} - Total: ${formattedTotal}`
 
     // Log notification
     const { error: logError } = await supabase.from("notifications").insert([
@@ -52,7 +138,9 @@ Thank you for your purchase!
         order_id: orderId,
         type: "email",
         recipient: email,
-        message: message,
+        message: logMessage,
+        status: emailResult.success ? 'sent' : 'failed',
+        error_message: emailResult.error || null,
       },
     ])
 
@@ -60,11 +148,19 @@ Thank you for your purchase!
       console.error("Error logging notification:", logError)
     }
 
-    // In production, send actual email with download links
-    console.log(`Payment confirmation sent to ${email}`)
-    console.log(`Message: ${message}`)
-
-    return NextResponse.json({ success: true, message: "Payment confirmation sent" })
+    if (emailResult.success) {
+      console.log(`✅ Payment confirmation email sent to ${email}`)
+      return NextResponse.json({ 
+        success: true, 
+        message: "Payment confirmation sent successfully",
+        messageId: emailResult.messageId 
+      })
+    } else {
+      console.error(`❌ Failed to send payment confirmation email: ${emailResult.error}`)
+      return NextResponse.json({ 
+        error: `Failed to send email: ${emailResult.error}` 
+      }, { status: 500 })
+    }
   } catch (error) {
     console.error("Error sending payment confirmation:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

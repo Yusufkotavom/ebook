@@ -4,7 +4,7 @@ import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, ShoppingBag, CreditCard, Download, LogOut, Menu, User } from "lucide-react"
+import { LayoutDashboard, ShoppingBag, CreditCard, Download, LogOut, Menu, User, Crown } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
@@ -12,6 +12,7 @@ import { useState } from "react"
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Orders", href: "/dashboard/orders", icon: ShoppingBag },
+  { name: "Subscription", href: "/dashboard/subscription", icon: Crown },
   { name: "Downloads", href: "/dashboard/downloads", icon: Download },
   { name: "Payment Methods", href: "/dashboard/payments", icon: CreditCard },
   { name: "Profile", href: "/dashboard/profile", icon: User },

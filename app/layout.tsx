@@ -6,11 +6,17 @@ import "./globals.css"
 import { CartProvider } from "@/hooks/use-cart"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { CurrencyProvider } from "@/contexts/currency-context"
+import { AuthProvider } from "@/contexts/auth-context"
+import { MobileBottomNav } from "@/components/mobile-bottom-nav"
+import { Toaster } from "react-hot-toast"
+import { NavigationProgress } from "@/components/navigation-progress"
+import { GlobalLoading } from "@/components/global-loading"
+import { Suspense } from "react"
 
 export const metadata: Metadata = {
-  title: "EbookStore - Digital Books & Educational Resources",
-  description: "Your premier destination for digital books and educational resources",
-  generator: "v0.app",
+  title: "Ebook Store",
+  description: "Your digital library awaits",
 }
 
 export default function RootLayout({
@@ -30,13 +36,51 @@ html {
         `}</style>
       </head>
       <body>
-        <CartProvider>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-        </CartProvider>
+        <AuthProvider>
+          <CurrencyProvider>
+            <CartProvider>
+              <Suspense>
+                <NavigationProgress />
+              </Suspense>
+              <Suspense>
+                <GlobalLoading />
+              </Suspense>
+              <div className="min-h-screen flex flex-col">
+                <Header />
+                <main className="flex-1 pb-20 md:pb-0">{children}</main>
+                <Footer />
+                <MobileBottomNav />
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      background: '#ffffff',
+                      color: '#000000',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    },
+                    success: {
+                      duration: 3000,
+                      iconTheme: {
+                        primary: '#22c55e',
+                        secondary: '#ffffff',
+                      },
+                    },
+                    error: {
+                      duration: 5000,
+                      iconTheme: {
+                        primary: '#ef4444',
+                        secondary: '#ffffff',
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </CartProvider>
+          </CurrencyProvider>
+        </AuthProvider>
       </body>
     </html>
   )

@@ -1,51 +1,116 @@
-import { createClient } from "@/lib/server"
+"use client"
+
+import { createClient } from "@/lib/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShoppingBag, Download, DollarSign, Clock } from "lucide-react"
+import { useCurrency } from "@/contexts/currency-context"
+import { SectionLoading } from "@/components/page-loading"
+import { usePageLoading } from "@/hooks/use-loading"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import type { User } from "@supabase/supabase-js"
 
-export default async function DashboardPage() {
-  const supabase = await createClient()
+interface OrderItem {
+  quantity: number
+  products: {
+    title: string
+    author: string
+  } | null
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+interface Order {
+  id: string
+  total_amount: string
+  status: string
+  created_at: string
+  order_items: OrderItem[]
+}
+
+export default function DashboardPage() {
+  const [user, setUser] = useState<User | null>(null)
+  const [totalOrders, setTotalOrders] = useState(0)
+  const [completedOrders, setCompletedOrders] = useState(0)
+  const [totalSpent, setTotalSpent] = useState(0)
+  const [recentOrders, setRecentOrders] = useState<Order[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { formatPrice } = useCurrency()
+  const router = useRouter()
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      const supabase = createClient()
+
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+
+      if (!currentUser) {
+        router.push("/auth/login")
+        return
+      }
+
+      setUser(currentUser)
+
+      try {
+        // Get user stats
+        const [
+          { count: totalOrdersCount },
+          { count: completedOrdersCount },
+          { data: recentOrdersData },
+          { data: paidOrdersData }
+        ] = await Promise.all([
+          supabase.from("orders").select("*", { count: "exact", head: true }).eq("user_id", currentUser.id),
+          supabase.from("orders").select("*", { count: "exact", head: true }).eq("user_id", currentUser.id).eq("status", "paid"),
+          supabase
+            .from("orders")
+            .select(
+              `
+              id,
+              total_amount,
+              status,
+              created_at,
+              order_items(
+                quantity,
+                products(title, author)
+              )
+            `,
+            )
+            .eq("user_id", currentUser.id)
+            .order("created_at", { ascending: false })
+            .limit(5),
+          supabase
+            .from("orders")
+            .select("total_amount")
+            .eq("user_id", currentUser.id)
+            .eq("status", "paid")
+        ])
+
+        setTotalOrders(totalOrdersCount || 0)
+        setCompletedOrders(completedOrdersCount || 0)
+        setRecentOrders(recentOrdersData || [])
+
+        const totalSpentAmount = paidOrdersData?.reduce((sum, order) => sum + Number.parseFloat(order.total_amount), 0) || 0
+        setTotalSpent(totalSpentAmount)
+
+      } catch (error) {
+        console.error("Error loading dashboard data:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadDashboardData()
+  }, [router])
+
+  if (isLoading) {
+    return <SectionLoading title="Loading your dashboard..." size="lg" className="min-h-screen" />
+  }
 
   if (!user) return null
-
-  // Get user stats
-  const [{ count: totalOrders }, { count: completedOrders }, { data: recentOrders }] = await Promise.all([
-    supabase.from("orders").select("*", { count: "exact", head: true }).eq("user_id", user.id),
-    supabase.from("orders").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "paid"),
-    supabase
-      .from("orders")
-      .select(
-        `
-        id,
-        total_amount,
-        status,
-        created_at,
-        order_items(
-          quantity,
-          products(title, author)
-        )
-      `,
-      )
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(5),
-  ])
-
-  const totalSpent = await supabase
-    .from("orders")
-    .select("total_amount")
-    .eq("user_id", user.id)
-    .eq("status", "paid")
-    .then(({ data }) => data?.reduce((sum, order) => sum + Number.parseFloat(order.total_amount), 0) || 0)
 
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-6 lg:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 text-sm sm:text-base">Welcome back! Here&apos;s your account overview.</p>
+        <p className="text-gray-600 text-sm sm:text-base">Welcome back! Here's your account overview.</p>
       </div>
 
       {/* Stats Cards */}
@@ -56,7 +121,7 @@ export default async function DashboardPage() {
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{totalOrders || 0}</div>
+            <div className="text-xl sm:text-2xl font-bold">{totalOrders}</div>
           </CardContent>
         </Card>
 
@@ -66,7 +131,7 @@ export default async function DashboardPage() {
             <Download className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{completedOrders || 0}</div>
+            <div className="text-xl sm:text-2xl font-bold">{completedOrders}</div>
           </CardContent>
         </Card>
 
@@ -76,7 +141,7 @@ export default async function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">${totalSpent.toFixed(2)}</div>
+            <div className="text-xl sm:text-2xl font-bold">{formatPrice(totalSpent)}</div>
           </CardContent>
         </Card>
 
@@ -86,7 +151,7 @@ export default async function DashboardPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{(totalOrders || 0) - (completedOrders || 0)}</div>
+            <div className="text-xl sm:text-2xl font-bold">{totalOrders - completedOrders}</div>
           </CardContent>
         </Card>
       </div>
@@ -105,7 +170,6 @@ export default async function DashboardPage() {
                   <div className="space-y-1">
                     {order.order_items.map((item, index) => (
                       <p key={index} className="font-medium text-sm truncate">
-                        {/* @ts-expect-error - Supabase type issue */}
                         {item.products?.title} by {item.products?.author}
                       </p>
                     ))}
@@ -113,7 +177,7 @@ export default async function DashboardPage() {
                   <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="text-left sm:text-right flex-shrink-0">
-                  <p className="font-medium text-lg">${Number.parseFloat(order.total_amount).toFixed(2)}</p>
+                  <p className="font-medium text-lg">{formatPrice(order.total_amount)}</p>
                   <span
                     className={`inline-flex px-2 py-1 text-xs rounded-full ${
                       order.status === "paid"

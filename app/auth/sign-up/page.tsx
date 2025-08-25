@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ButtonSpinner, PageLoader } from "@/components/ui/spinner"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [whatsappNumber, setWhatsappNumber] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -50,14 +53,41 @@ export default function SignUpPage() {
       return
     }
 
+    if (fullName.trim().length < 2) {
+      setError("Full name must be at least 2 characters")
+      setIsLoading(false)
+      return
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            whatsapp_number: whatsappNumber.trim()
+          }
+        }
       })
       if (error) throw error
 
       if (data.user) {
+        // Create/update profile with additional info
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: fullName.trim(),
+            whatsapp_number: whatsappNumber.trim()
+          })
+
+        if (profileError) {
+          console.error("Profile creation error:", profileError)
+          // Don't fail the signup if profile creation fails
+        }
+
         router.push("/dashboard")
       }
     } catch (error: unknown) {
@@ -69,20 +99,7 @@ export default function SignUpPage() {
 
   // Show loading while checking authentication
   if (isCheckingAuth) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-sm">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-              <p className="text-center text-sm text-gray-500 mt-4">Checking authentication...</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
+    return <PageLoader text="Checking authentication..." />
   }
 
   return (
@@ -97,7 +114,19 @@ export default function SignUpPage() {
             <form onSubmit={handleSignUp}>
               <div className="flex flex-col gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Your full name"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -105,30 +134,46 @@ export default function SignUpPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                  <Input
+                    id="whatsappNumber"
+                    type="tel"
+                    placeholder="+62812345678"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-gray-500">Optional - for order notifications</p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Password *</Label>
                   <Input
                     id="password"
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Label htmlFor="confirm-password">Confirm Password *</Label>
                   <Input
                     id="confirm-password"
                     type="password"
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
                   />
                 </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
                 <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <ButtonSpinner />}
                   {isLoading ? "Creating account..." : "Sign Up"}
                 </Button>
               </div>

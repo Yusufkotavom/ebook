@@ -7,20 +7,42 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ButtonSpinner, CardLoader } from "@/components/ui/spinner"
+import { CheckoutCart } from "@/components/checkout-cart"
 import { useCart } from "@/hooks/use-cart"
-import { useState, useEffect } from "react"
+import { useCurrency } from "@/contexts/currency-context"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import type { User } from "@supabase/supabase-js"
 
+interface UserProfile {
+  full_name?: string
+  whatsapp_number?: string
+}
+
 export default function CheckoutPage() {
-  const { state, clearCart } = useCart()
+  const { state, clearCart, removeFromCart } = useCart()
+  const { formatPrice } = useCurrency()
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [whatsappNumber, setWhatsappNumber] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [selectedItems, setSelectedItems] = useState<any[]>([])
+  const [selectedTotal, setSelectedTotal] = useState(0)
+  const [loadingStep, setLoadingStep] = useState<string>("")
   const router = useRouter()
+
+  // Handle selected items change from CheckoutCart
+  const handleSelectedItemsChange = useCallback((items: any[], total: number) => {
+    setSelectedItems(items)
+    setSelectedTotal(total)
+  }, [])
 
   // Check if user is logged in when component mounts
   useEffect(() => {
@@ -31,6 +53,19 @@ export default function CheckoutPage() {
       if (currentUser) {
         setUser(currentUser)
         setEmail(currentUser.email || "")
+        
+        // Fetch user profile data
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, whatsapp_number")
+          .eq("id", currentUser.id)
+          .single()
+          
+        if (profile) {
+          setUserProfile(profile)
+          setFullName(profile.full_name || "")
+          setWhatsappNumber(profile.whatsapp_number || "")
+        }
       }
       setIsCheckingAuth(false)
     }
@@ -42,6 +77,48 @@ export default function CheckoutPage() {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    setLoadingStep("Validating order...")
+
+    // Validate selected items
+    if (selectedItems.length === 0) {
+      setError("Please select at least one item to checkout")
+      setIsLoading(false)
+      return
+    }
+
+    // Validate required fields
+    if (!fullName.trim()) {
+      setError("Full name is required")
+      setIsLoading(false)
+      return
+    }
+
+    if (!email.trim()) {
+      setError("Email is required")
+      setIsLoading(false)
+      return
+    }
+
+    // For guest users, validate password
+    if (!user) {
+      if (!password.trim()) {
+        setError("Password is required")
+        setIsLoading(false)
+        return
+      }
+
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters")
+        setIsLoading(false)
+        return
+      }
+
+      if (password !== confirmPassword) {
+        setError("Passwords do not match")
+        setIsLoading(false)
+        return
+      }
+    }
 
     const supabase = createClient()
 
@@ -51,44 +128,74 @@ export default function CheckoutPage() {
       let userId = user?.id
 
       if (!userId) {
-        console.log("[v0] Creating new user for checkout")
-        const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
+        setLoadingStep("Creating your account...")
+        console.log("[v0] Creating new user account during checkout")
 
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password: tempPassword,
+          email: email.trim(),
+          password: password,
           options: {
-            emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
             data: {
-              email_confirm: true, // Skip email verification for local testing
+              full_name: fullName.trim(),
+              whatsapp_number: whatsappNumber.trim()
             },
           },
         })
 
         if (signUpError) {
           console.log("[v0] Signup error:", signUpError)
-          // If user already exists, try to sign them in with a different approach
-          if (signUpError.message.includes("already registered")) {
-            // For existing users, we'll create the order without authentication
-            // This is a simplified approach for manual payment processing
-            console.log("[v0] User exists, proceeding with guest checkout")
+          
+          // If user already exists, try to sign them in
+          if (signUpError.message.includes("already registered") || signUpError.message.includes("already been registered")) {
+            setError("An account with this email already exists. Please sign in first or use a different email.")
+            setIsLoading(false)
+            return
           } else {
             throw signUpError
           }
         } else {
           userId = signUpData.user?.id
-          console.log("[v0] New user created:", userId)
+          console.log("[v0] New user created and signed in:", userId)
+          
+          // Create/update profile for new user
+          if (userId) {
+            const { error: profileError } = await supabase
+              .from("profiles")
+              .upsert({
+                id: userId,
+                email: email.trim(),
+                full_name: fullName.trim(),
+                whatsapp_number: whatsappNumber.trim()
+              })
+            
+            if (profileError) {
+              console.error("Profile creation error:", profileError)
+            }
+          }
+        }
+      } else {
+        // Update existing user profile if data has changed
+        const { error: profileUpdateError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: fullName.trim(),
+            whatsapp_number: whatsappNumber.trim()
+          })
+          .eq("id", userId)
+          
+        if (profileUpdateError) {
+          console.error("Profile update error:", profileUpdateError)
         }
       }
 
+      setLoadingStep("Creating your order...")
       console.log("[v0] Creating order")
 
       const orderData = {
-        user_id: userId || null, // Allow null for guest checkout
-        total_amount: state.total,
+        user_id: userId,
+        total_amount: selectedTotal,
         status: "pending" as const,
         payment_method: "manual",
-        guest_email: !userId ? email : null, // Store guest email if no user ID
       }
 
       const { data: createdOrder, error: orderError } = await supabase
@@ -104,26 +211,67 @@ export default function CheckoutPage() {
 
       console.log("[v0] Order created:", createdOrder.id)
 
-      // Create order items
-      const orderItems = state.items.map((item) => ({
-        order_id: createdOrder.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        price: item.price,
-      }))
+      // Create order items and handle subscriptions
+      setLoadingStep("Processing items...")
+      
+      // Separate subscription items from regular products
+      const subscriptionItems = selectedItems.filter(item => item.isSubscription)
+      const regularItems = selectedItems.filter(item => !item.isSubscription)
+      
+      // Handle regular product items
+      if (regularItems.length > 0) {
+        const orderItems = regularItems.map((item) => ({
+          order_id: createdOrder.id,
+          product_id: item.id,
+          quantity: item.quantity,
+          price: item.price,
+        }))
 
-      console.log("[v0] Creating order items:", orderItems)
+        console.log("[v0] Creating order items:", orderItems)
+        const { error: itemsError } = await supabase.from("order_items").insert(orderItems)
 
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems)
-
-      if (itemsError) {
-        console.log("[v0] Order items error:", itemsError)
-        throw itemsError
+        if (itemsError) {
+          console.log("[v0] Order items error:", itemsError)
+          throw itemsError
+        }
       }
 
+      // Handle subscription items
+      if (subscriptionItems.length > 0) {
+        setLoadingStep("Processing subscription...")
+        
+        const subscriptionOrderItems = subscriptionItems.map((item) => ({
+          order_id: createdOrder.id,
+          product_id: null, // No product ID for subscriptions
+          subscription_package_id: item.subscriptionPackageId,
+          item_type: 'subscription',
+          quantity: 1,
+          price: item.price,
+        }))
+
+        console.log("[v0] Creating subscription items:", subscriptionOrderItems)
+        const { error: subItemsError } = await supabase
+          .from("order_items")
+          .insert(subscriptionOrderItems)
+
+        if (subItemsError) {
+          console.log("[v0] Subscription items error:", subItemsError)
+          throw subItemsError
+        }
+
+        console.log("[v0] Subscription items created successfully")
+      }
+
+      setLoadingStep("Finalizing order...")
       console.log("[v0] Checkout completed successfully")
-      clearCart()
-      router.push(`/order-confirmation?order=${createdOrder.id}&email=${encodeURIComponent(email)}`)
+      
+      // Remove only selected items from cart (keep unselected for future purchase)
+      selectedItems.forEach(item => {
+        removeFromCart(item.id)
+      })
+      
+      setLoadingStep("Redirecting to payment...")
+      router.push(`/checkout/payment?order=${createdOrder.id}&total=${selectedTotal}`)
     } catch (error: unknown) {
       console.log("[v0] Checkout error:", error)
       setError(error instanceof Error ? error.message : "An error occurred during checkout")
@@ -152,12 +300,25 @@ export default function CheckoutPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-48 mb-8"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-96 bg-gray-200 rounded"></div>
-              <div className="h-96 bg-gray-200 rounded"></div>
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Card>
+              <CardHeader>
+                <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-16"></div>
+              </CardHeader>
+              <CardContent>
+                <CardLoader rows={5} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <div className="h-6 bg-gray-200 rounded w-40 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-64"></div>
+              </CardHeader>
+              <CardContent>
+                <CardLoader rows={8} />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -170,60 +331,26 @@ export default function CheckoutPage() {
         <h1 className="text-3xl font-bold mb-8">Checkout</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Order Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
-              <CardDescription>{state.itemCount} items</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {state.items.map((item) => (
-                  <div key={item.id} className="flex items-center space-x-4">
-                    <div className="relative h-16 w-12">
-                      <Image
-                        src={item.image_url || "/placeholder.svg?height=64&width=48&query=book cover"}
-                        alt={item.title}
-                        fill
-                        className="object-cover rounded"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-sm">{item.title}</h4>
-                      <p className="text-xs text-gray-500">by {item.author}</p>
-                      <p className="text-sm">Qty: {item.quantity}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center text-lg font-semibold">
-                    <span>Total:</span>
-                    <span>${state.total.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Enhanced Order Summary with Quantity Controls & Selection */}
+          <CheckoutCart onSelectedItemsChange={handleSelectedItemsChange} />
 
           {/* Checkout Form */}
           <Card>
             <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
+              <CardTitle>
+                {user ? "Contact Information" : "Create Account & Checkout"}
+              </CardTitle>
               <CardDescription>
                 {user 
                   ? "Your download links will be sent to your registered email" 
-                  : "We&apos;ll send your download links to this email"
+                  : "Create your account and complete your purchase in one step"
                 }
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCheckout} className="space-y-4">
-                {user ? (
-                  /* Logged in user */
+                {user && (
+                  /* Logged in user - show email info */
                   <div className="bg-green-50 p-4 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -237,36 +364,120 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  /* Guest user */
-                  <div>
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      An account will be created automatically if you don&apos;t have one
-                    </p>
-                  </div>
                 )}
+
+                {!user && (
+                  /* Guest user - account creation fields */
+                  <>
+                    <div>
+                      <Label htmlFor="email">Email Address *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        disabled={isLoading}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        This will be your account email
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="password">Create Password *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter your password"
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Full Name - always required */}
+                <div>
+                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your full name"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {/* WhatsApp Number - optional */}
+                <div>
+                  <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                  <Input
+                    id="whatsappNumber"
+                    type="tel"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    placeholder="+62812345678"
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Optional - for order notifications and support
+                  </p>
+                </div>
 
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <h4 className="font-medium text-yellow-800 mb-2">Payment Method</h4>
                   <p className="text-sm text-yellow-700">
-                    Manual payment processing. After placing your order, you&apos;ll receive payment instructions via email.
+                    Manual payment processing. After placing your order, you'll receive payment instructions.
                     Your download links will be sent once payment is confirmed.
                   </p>
                 </div>
 
+                {!user && (
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-blue-800 mb-2">Account Benefits</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• Track your orders and download history</li>
+                      <li>• Faster checkout for future purchases</li>
+                      <li>• Access your ebooks anytime</li>
+                      <li>• Receive order updates and support</li>
+                    </ul>
+                  </div>
+                )}
+
                 {error && <p className="text-sm text-red-500">{error}</p>}
 
-                <Button type="submit" className="w-full" size="lg" disabled={isLoading || isCheckingAuth}>
-                  {isLoading ? "Processing..." : "Place Order"}
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  size="lg" 
+                  disabled={isLoading || isCheckingAuth || selectedItems.length === 0}
+                >
+                  {isLoading && <ButtonSpinner />}
+                  {selectedItems.length === 0 
+                    ? "Select items to checkout"
+                    : isLoading 
+                      ? loadingStep || (user ? "Processing..." : "Creating Account & Order...") 
+                      : (user ? `Place Order (${formatPrice(selectedTotal)})` : `Create Account & Place Order (${formatPrice(selectedTotal)})`)
+                  }
                 </Button>
 
                 {!user && (
@@ -278,8 +489,9 @@ export default function CheckoutPage() {
                         className="p-0 h-auto text-blue-600 hover:text-blue-800"
                         onClick={() => router.push('/auth/login')}
                         type="button"
+                        disabled={isLoading}
                       >
-                        Sign in
+                        Sign in instead
                       </Button>
                     </p>
                   </div>

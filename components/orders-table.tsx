@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, Send } from "lucide-react"
 import { useState } from "react"
+import { useCurrency } from "@/contexts/currency-context"
 import { NotificationDialog } from "./notification-dialog"
 import { OrderDetailDialog } from "./order-detail-dialog"
 
@@ -15,8 +16,15 @@ interface Order {
   status: string
   payment_method: string
   created_at: string
+  user_id: string | null
   guest_email: string | null
-  profiles: { email: string } | null
+  guest_name: string | null
+  guest_whatsapp: string | null
+  profiles: { 
+    email: string
+    full_name: string | null
+    whatsapp_number: string | null
+  } | null
   order_items: Array<{
     quantity: number
     price: string
@@ -32,6 +40,7 @@ export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
   const [orders, setOrders] = useState(initialOrders)
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const { formatPrice } = useCurrency()
   const [notificationOrder, setNotificationOrder] = useState<Order | null>(null)
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -98,7 +107,21 @@ export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
           {orders.map((order) => (
             <TableRow key={order.id}>
               <TableCell className="font-mono text-sm">{order.id.slice(0, 8)}...</TableCell>
-              <TableCell>{order.profiles?.email || order.guest_email || "N/A"}</TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  <div className="font-medium">
+                    {order.profiles?.full_name || order.guest_name || "Guest User"}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {order.profiles?.email || order.guest_email || "No email"}
+                  </div>
+                  {(order.profiles?.whatsapp_number || order.guest_whatsapp) && (
+                    <div className="text-xs text-gray-500">
+                      WA: {order.profiles?.whatsapp_number || order.guest_whatsapp}
+                    </div>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>
                 <div className="space-y-1">
                   {order.order_items.map((item, index) => (
@@ -108,7 +131,7 @@ export function OrdersTable({ orders: initialOrders }: OrdersTableProps) {
                   ))}
                 </div>
               </TableCell>
-              <TableCell>${Number.parseFloat(order.total_amount).toFixed(2)}</TableCell>
+              <TableCell>{formatPrice(order.total_amount)}</TableCell>
               <TableCell>
                 <Select
                   value={order.status}
