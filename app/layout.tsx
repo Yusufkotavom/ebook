@@ -16,10 +16,16 @@ import { LoadingProvider } from "@/hooks/use-loading"
 import { CompilationDetector } from "@/components/compilation-detector"
 import { Suspense } from "react"
 import { ConditionalLayout } from "@/components/conditional-layout"
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
 
 export const metadata: Metadata = {
   title: "Ebook Store",
   description: "Your digital library awaits",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#000000",
+  icons: {
+    icon: "/favicon.ico",
+  },
 }
 
 export default function RootLayout({
@@ -43,6 +49,7 @@ html {
           <AuthProvider>
             <CurrencyProvider>
               <CartProvider>
+                <ServiceWorkerRegister />
                 <Suspense>
                   <NavigationProgress />
                 </Suspense>
